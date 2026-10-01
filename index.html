@@ -854,12 +854,13 @@ const GROUPS=[
 ];
 const panel=document.getElementById('panel');const CTRL={};const EXPL=[];
 function dispVal(it,v){if(it.u==='len')return +toU(v).toFixed(P.units==='in'?3:2);return +(+v).toFixed(2);}
+const SESSION_OPEN={}; // sections start collapsed on every load; stay as you left them while the page is open
 function buildPanel(){
   panel.innerHTML='';for(const k in CTRL)delete CTRL[k];EXPL.length=0;
   let openState={};try{openState=JSON.parse(localStorage.getItem('wingsim-open6')||'{}')}catch(e){}
   GROUPS.forEach((g,gi)=>{
-    const d=document.createElement('details');d.open=openState[gi]??!!g.open;
-    d.addEventListener('toggle',()=>{openState[gi]=d.open;try{localStorage.setItem('wingsim-open6',JSON.stringify(openState))}catch(e){}});
+    const d=document.createElement('details');d.open=SESSION_OPEN[gi]??false;
+    d.addEventListener('toggle',()=>{SESSION_OPEN[gi]=d.open;openState[gi]=d.open;try{localStorage.setItem('wingsim-open6',JSON.stringify(openState))}catch(e){}});
     d.innerHTML=`<summary>${g.title}</summary>`;const box=document.createElement('div');box.className='grp';d.appendChild(box);
     for(const it of g.items){
       if(it.type==='seg'){const s=document.createElement('div');s.className='seg';s.setAttribute('role','group');
