@@ -185,7 +185,7 @@ const DEF={
   refShoulder:-47.5, refElbow:90, refWrist:100, tRefElbow:20, tRefWrist:20,
   shoulder:-8, elbow:20,
   elbowMin:12, elbowMax:120, pivOpen:-8, pivFold:-105.5,
-  handleAt:'elbow', handleWhere:'elbow', handleLen:450, handleAng:-100, handleDir:-95, layout:'back', handType:'single', elbowPlate:false, sharedPlate:true, pivotSpread:260, wristFixed:false, wristFix:25, guideMode:'tabs', gB:40, guidePrim:true,
+  handleAt:'elbow', handleWhere:'elbow', handleLen:450, handleAng:-100, handleDir:-95, layout:'back', handType:'single', elbowPlate:false, sharedPlate:true, plateIn:60, plateUp:28, plateDown:28, plateEdge:13.3, pivotSpread:260, wristFixed:false, wristFix:25, guideMode:'tabs', gB:40, guidePrim:true,
   showFeathers:true, primaries:10, secondaries:13, pIn:300, pOut:430, sLen:260, tuck:0.8, tertials:4, tLen:200, pCov:7, pcLen:150, mCov:7, mcLen:95, pcOn:false, mcOn:false, liftOn:true, liftAng:30, liftHx:-30, liftHy:40,
   guides:false, gS:114.5, aS:15, bS:18, gP:60.5, aP:76, bP:224,
   ghosts:false, trace:false, labels:true, pinLabels:true, arcs:true, gripPath:false, showHoles:true, bothWings:false, plateRaise:0, figH:1727, figShoulder:410,
@@ -415,15 +415,20 @@ function feathers(p){
 const rb=()=>Math.max(P.holeDia*1.3,P.barWidth*0.4); // half-spacing of the two bolts per rung end
 function humRungs(){if(!tied())return[];const a=G.fb0+rb()+P.holeDia,b=P.humerus-P.hSet-rb()-P.holeDia*1.5;return b-a>rb()*3?[a,b]:[a];}
 function handRungs(){return[];const a=Math.max(0,P.kAlong)+rb()+P.holeDia*2,b=P.hand-rb()-P.holeDia;return b-a>rb()*3?[a,b]:[a];}
-function harness(){const ys=[0];if(!tied())ys.push(G.C2.y);const y0=Math.min(...ys),y1=Math.max(...ys),x=Math.min(0,tied()?0:G.C2.x)-60;
-  return [V(x,y0-28),V(x,y1+28)];}
+// Harness bolt holes on the backplate. Two-piece plates can be resized: reach toward the spine, extension above/below, edge margin.
+const splitPlate=()=>!P.sharedPlate;
+function harness(){const ys=[0];if(!tied())ys.push(G.C2.y);const y0=Math.min(...ys),y1=Math.max(...ys),sp=splitPlate(),x=Math.min(0,tied()?0:G.C2.x)-(sp?P.plateIn:60);
+  return [V(x,y0-(sp?P.plateDown:28)),V(x,y1+(sp?P.plateUp:28))];}
+const plateW=()=>splitPlate()?P.plateEdge*2:P.barWidth*1.4;
+function plateSize(){const pts=[...harness(),...(P.liftOn&&!tied()?[hingePt()]:[V(0,0),...(tied()?[]:[G.C2])])],r=plateW()/2;
+  const xs=pts.map(q=>q.x),ys=pts.map(q=>q.y);return [Math.max(...xs)-Math.min(...xs)+2*r,Math.max(...ys)-Math.min(...ys)+2*r];}
 function elbowPlatePts(p){const pts=[at(p.E,p.af,35),at(p.E,p.af,95)];if(p.O)pts.push(p.O);return pts;}
 // Part colours: each bone gets its own contrasting colour (connector plates share purple).
 const PC={mount:'#8a949b',lift:'#a16207',coracoid:'#d62828',clavicle:'#1d4ed8',ulna:'#f2c500',radius:'#16a34a',hand:'#f97316',plate:'#9333ea',handle:'#db2777',guide:'#06b6d4'};
 function shapes(p){
   const w=P.barWidth,S=[],H=[],hd=P.holeDia;
   const mountC=P.liftOn?[hingePt(),...harness()]:[p.C1,...harness()];if(!tied()&&!P.liftOn)mountC.push(p.C2);if(P.sharedPlate){const h=harness();mountC.push(V(-P.pivotSpread/2,h[0].y),V(-P.pivotSpread/2,h[1].y));}
-  S.push({k:'mount',col:'mount',c:mountC,w:w*1.4});
+  S.push({k:'mount',col:'mount',c:mountC,w:plateW()});
   if(P.liftOn){const lp=[hingePt(),p.C1];if(!tied())lp.push(p.C2);S.push({k:'rung',col:'lift',c:lp,w:w*1.2});H.push({p:hingePt(),d:hd*1.3});}
   S.push({k:'bar',col:'coracoid',c:[p.C1,p.E],w:P.wCor,poly:barWorld(p.C1,p.E,P.wCor,P.baseFlare)});
   {const A=tied()?p.F0:p.C2,B=tied()?p.R0:p.O;S.push({k:'bar',col:'clavicle',c:[A,B],w:P.wClav,poly:barWorld(A,B,P.wClav,P.baseFlare&&!tied())});}
@@ -783,6 +788,11 @@ const GROUPS=[
     {key:'pivotSpread',label:'Back width',hint:'left ↔ right shoulder pivots',min:80,max:500,step:1,u:'len'},
     {key:'plateRaise',label:'Backplate height',hint:'0 = top at shoulders, − lowers',min:-400,max:200,step:1,u:'len'},
     {type:'check',key:'sharedPlate',label:'One-piece backplate for both wings'},
+    {key:'plateIn',label:'Plate reach toward spine',hint:'harness holes in from the pivots',min:10,max:250,step:1,u:'len',needs:'split'},
+    {key:'plateUp',label:'Extend above',hint:'past the top pivot',min:5,max:250,step:1,u:'len',needs:'split'},
+    {key:'plateDown',label:'Extend below',hint:'past the lower pivot',min:5,max:250,step:1,u:'len',needs:'split'},
+    {key:'plateEdge',label:'Edge margin',hint:'hole centre → plate edge',min:6,max:60,step:0.5,u:'len',needs:'split'},
+    {type:'info',id:'plateSize',needs:'split'},
     {type:'check',key:'liftOn',label:'Lift hinge (raise the whole wing)'},
     {key:'liftAng',label:'Lift angle',hint:'+ raises the wing',min:-30,max:100,step:0.5,u:'deg',needs:'lift'},
     {key:'liftHx',label:'Hinge position',hint:'− toward the spine',min:-300,max:100,step:1,u:'len',needs:'lift'},
@@ -843,6 +853,7 @@ function buildPanel(){
         for(const [v,l] of it.opts){const b=document.createElement('button');b.id=`seg_${it.key}_${v}`;b.dataset.v=v;b.textContent=l;
           b.onclick=()=>{P[it.key]=v;if(it.key==='handleWhere'&&P.handleAt!=='none'){P.handleAt=v;VW.user=false;}if(it.key==='mode'){if(v==='pivot')P.shoulder=clamp(P.shoulder,P.pivFold,P.pivOpen);VW.user=false;}paramChanged(true);syncAll();};s.appendChild(b);}
         box.appendChild(s);CTRL[it.key]={it,el:s};continue;}
+      if(it.type==='info'){const p=document.createElement('p');p.className='explain';p.id='info_'+it.id;box.appendChild(p);EXPL.push({it,el:p});continue;}
       if(it.type==='explain'){const p=document.createElement('p');p.className='explain';p.textContent=it.text;box.appendChild(p);EXPL.push({it,el:p});continue;}
       if(it.type==='check'){const l=document.createElement('label');l.className='check';l.innerHTML=`<input type="checkbox" id="c_${it.key}"> ${it.label}`;
         const c=l.querySelector('input');c.onchange=()=>{P[it.key]=c.checked;if(it.key==='trace')TRACE=[];if(it.key==='bothWings')VW.user=false;paramChanged(it.key==='bothWings');syncAll();};box.appendChild(l);CTRL[it.key]={it,c};continue;}
@@ -884,10 +895,10 @@ function syncAll(){
     if(it.type==='span'){const sp=openSpan();if(document.activeElement!==c.nm)c.nm.value=+toU(sp).toFixed(P.units==='in'?1:0);if(document.activeElement!==c.rg)c.rg.value=sp;continue;}
     if(c.c){c.c.checked=!!P[k];continue;}
     if(it.type==='seg'){for(const b of c.el.children)b.setAttribute('aria-pressed',String(b.dataset.v===P[k]));continue;}
-    c.row.hidden=!visible(it)||(it.needs==='handle'&&P.handleAt==='none')||(it.needs==='angled'&&P.handleAt!=='angled')||(it.needs==='guides'&&!P.guides)||(it.needs==='noguides'&&P.guides)||(it.needs==='both'&&!P.bothWings)||(it.needs==='pc'&&!P.pcOn)||(it.needs==='lift'&&!P.liftOn)||(it.needs==='flare'&&!P.baseFlare)||(it.needs==='mc'&&!P.mcOn)||(it.needs==='shared'&&!P.sharedPlate)||(it.needs==='wristfix'&&!P.wristFixed)||(it.needs==='pins'&&P.guideMode!=='pins')||(it.needs2==='tabs'&&P.guideMode!=='tabs')||(it.needs2==='radius'&&P.wristFixed);
+    c.row.hidden=!visible(it)||(it.needs==='handle'&&P.handleAt==='none')||(it.needs==='angled'&&P.handleAt!=='angled')||(it.needs==='guides'&&!P.guides)||(it.needs==='noguides'&&P.guides)||(it.needs==='both'&&!P.bothWings)||(it.needs==='pc'&&!P.pcOn)||(it.needs==='lift'&&!P.liftOn)||(it.needs==='flare'&&!P.baseFlare)||(it.needs==='mc'&&!P.mcOn)||(it.needs==='shared'&&!P.sharedPlate)||(it.needs==='split'&&!splitPlate())||(it.needs==='wristfix'&&!P.wristFixed)||(it.needs==='pins'&&P.guideMode!=='pins')||(it.needs2==='tabs'&&P.guideMode!=='tabs')||(it.needs2==='radius'&&P.wristFixed);
     const ro=it.ro==='all'||it.ro===P.mode;c.rg.disabled=ro;c.nm.disabled=ro;c.row.classList.toggle('disabled',ro);
     if(document.activeElement!==c.rg)c.rg.value=P[k];if(document.activeElement!==c.nm)c.nm.value=dispVal(it,P[k]);}
-  for(const e of EXPL)e.el.hidden=!visible(e.it);
+  for(const e of EXPL)e.el.hidden=!visible(e.it)||(e.it.needs==='split'&&!splitPlate());updInfo();
   syncPose();
   document.getElementById('units').value=P.units;document.getElementById('speed').value=P.speed;document.getElementById('preset').value=P.preset;
   for(const b of document.querySelectorAll('#viewbar button[data-k]')){const k=b.dataset.k;b.setAttribute('aria-pressed',String(k==='handle'?P.handleAt!=='none':!!P[k]));}
@@ -896,11 +907,12 @@ function syncAll(){
 function syncPose(){const p=cur();const vals={shoulder:p.shoulder,elbow:p.elbow,wrist:p.wristFlex};
   for(const k of['shoulder','elbow','wrist']){const c=CTRL[k];if(!c)continue;if(document.activeElement!==c.rg)c.rg.value=vals[k];if(document.activeElement!==c.nm)c.nm.value=(+vals[k]).toFixed(1);}}
 function poseChanged(){if(P.trace&&playing){TRACE.push(cur().T);if(TRACE.length>600)TRACE.shift();}draw();drawChart();readouts();}
-function paramChanged(refit){derive();QC=null;clampInput();computeGuides();buildChart();TRACE=[];if(refit&&!VW.user)fit();draw();drawChart();readouts();persist();const sp=CTRL.__span;if(sp){const v=openSpan();if(document.activeElement!==sp.nm)sp.nm.value=+toU(v).toFixed(P.units==='in'?1:0);if(document.activeElement!==sp.rg)sp.rg.value=v;}}
+function updInfo(){for(const e of EXPL)if(e.it.id==='plateSize'&&!e.el.hidden){const [a,b]=plateSize();e.el.innerHTML=`<b>Each backplate:</b> about ${fmtL(a)} wide × ${fmtL(b)} tall`;}}
+function paramChanged(refit){derive();QC=null;clampInput();computeGuides();buildChart();TRACE=[];if(refit&&!VW.user)fit();draw();drawChart();readouts();persist();updInfo();const sp=CTRL.__span;if(sp){const v=openSpan();if(document.activeElement!==sp.nm)sp.nm.value=+toU(v).toFixed(P.units==='in'?1:0);if(document.activeElement!==sp.rg)sp.rg.value=v;}}
 const VIEW_KEYS=['units','speed','showFeathers','handleAt','handleWhere','pinLabels','handleDir','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn'];
 function resetDims(){const keep={};for(const k of VIEW_KEYS)keep[k]=P[k];P=Object.assign({},DEF,PRESETS[P.preset]||{},keep,{preset:P.preset});
   TRACE=[];paramChanged(false);syncAll();toast('Dimensions reset to '+document.querySelector(`#preset option[value=${P.preset}]`).textContent.toLowerCase());}
-function applyPreset(name){const keep={};for(const k of['units','animMode','speed','mode','handleAt','handleWhere','pinLabels','handleLen','handleDir','showFeathers','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn','pivotSpread','barWidth','wCor','wClav','wUlna','wRad','wHand','wHandle','baseFlare','baseW','baseLen','holeDia','fHoleDia','fHoles'])keep[k]=P[k];
+function applyPreset(name){const keep={};for(const k of['units','animMode','speed','mode','handleAt','handleWhere','pinLabels','handleLen','handleDir','showFeathers','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn','pivotSpread','plateIn','plateUp','plateDown','plateEdge','barWidth','wCor','wClav','wUlna','wRad','wHand','wHandle','baseFlare','baseW','baseLen','holeDia','fHoleDia','fHoles'])keep[k]=P[k];
   P=Object.assign({},DEF,keep,PRESETS[name]||{},{preset:name});VW.user=false;paramChanged(true);syncAll();
   toast('Loaded '+document.querySelector(`#preset option[value=${name}]`).textContent.toLowerCase());}
 
@@ -958,7 +970,7 @@ function partList(){
     const mname='Backplate';
     if(P.sharedPlate){const cx=-P.pivotSpread/2,mir=hs.map(h=>({...h,x:2*cx-h.x}));
       parts.push({name:mname+' (both wings)',single:true,holes:hs.concat(mir),w:w*1.4,links:tied()?[[0,hs.length]]:[[0,hs.length],[0,1]],note:'one plate carries both shoulders; bolt to harness through the large holes'});}
-    else parts.push({name:mname,holes:hs,w:w*1.4,links:(tied()||P.liftOn)?[]:[[0,1]],note:'bolt to harness through the two large holes'});}
+    else parts.push({name:mname,holes:hs,w:plateW(),links:(tied()||P.liftOn)?[]:[[0,1]],note:'bolt to harness through the two large holes'});}
   const hr=humRungs();
   const GU=P.showFeathers&&P.guides&&GD,tabH=x=>GU&&P.guideMode==='tabs'?[hole(x-r,0,'guide tab'),hole(x+r,0,'guide tab')]:[];
   {const hs=[hole(0,0,'shoulder'),hole(P.humerus,0,'elbow'),...rungHoles(hr,0),...tabH(P.humerus-P.aS)];const th=P.fHoles?terX.map(x=>hole(x,0,'',fd)).filter(clear(hs)):[];
@@ -1032,7 +1044,7 @@ function templateSVG(){
   out.push(`<g id="scale-check"><rect x="${M}" y="${sy}" width="100" height="6" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M}" y="${sy+11}" ${F} font-size="3.4">10 cm: measure to confirm scale</text>`+
     `<rect x="${M+115}" y="${sy}" width="25.4" height="25.4" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M+115}" y="${sy+30}" ${F} font-size="3.4">1 in square</text></g>`);
   const Wd=Math.max(maxW+M*2,190),Hd=sy+36;
-  const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Cosplay Wing Simulator part templates · ${tied()?'tied':'pivoting'} humerus</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · blue dashed = centreline · black = engrave. Pivot Ø ${fmtL(P.holeDia,dp)} · overall bar thickness ${fmtL(P.barWidth,dp)} (see each part) · ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Quantities cover a pair of wings. Hardware: one bolt size for every pivot; shoulder bolts or Chicago screws with nylon washers; bolt rigid joints (two bolts) tight, pivots snug.</text>`;
+  const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Cosplay Wing Simulator part templates · ${tied()?'tied':'pivoting'} humerus</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · blue dashed = centreline · black = engrave. Pivot Ø ${fmtL(P.holeDia,dp)} · overall bar width ${fmtL(P.barWidth,dp)} (see each part) · ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Quantities cover a pair of wings. Hardware: one bolt size for every pivot; shoulder bolts or Chicago screws with nylon washers; bolt rigid joints (two bolts) tight, pivots snug.</text>`;
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${n2(Wd)}mm" height="${n2(Hd)}mm" viewBox="0 0 ${n2(Wd)} ${n2(Hd)}">\n${head}\n${out.join('\n')}\n</svg>\n`;
 }
 function assemblySVG(){
