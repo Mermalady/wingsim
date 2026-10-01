@@ -14,7 +14,7 @@ A 2D, browser-based simulator for articulated bird-style costume wings. Adjust t
   - the **radius** drives the **hand**, which folds the wrist.
 
   The wing goes from fully open to fully closed.
-- **Handle:** a bar that pivots freely at the elbow. Drag the grip in the view to work the wing by hand.
+- **Handle:** a bar that pivots freely at the elbow or at the end of the ulna (wrist). Drag the grip in the view to work the wing by hand.
 - **Lift hinge (optional):** both shoulder pivots ride on a lift plate, so the whole wing can be raised above the head.
 - **Feathers:**
   - primaries, secondaries with a scalloped trailing edge, and tertials;
@@ -30,20 +30,23 @@ A 2D, browser-based simulator for articulated bird-style costume wings. Adjust t
 1. Open the [live app](https://mermalady.github.io/wingsim/), or download `index.html` and open it in any browser. It works offline and needs no install.
 2. Pick a preset, then adjust these panel sections:
    - **Overall size**
-   - **Bones**
-   - **Humerus bars & backplate**
-   - **Hand**
+   - **Bone dimensions**
+   - **Kinematics** (pin positions, wrist pin, radius–ulna spacing)
    - **Fold range**
-   - **Feathers**
+   - **Handle**
    - **Lift hinge**
+   - **Feathers**
+   - **Figure**
+   
+   Use the **View** bar above the drawing to show or hide feathers, the handle, motion paths, the figure, and part and pin labels.
 3. Press **Play**, or drag the ringed joints and the handle grip, to check the motion.
 4. Go to **Build & export** and set:
-   - the thickness of each bar, or an overall thickness;
+   - the width of each bar, or an overall width;
    - widened bases on the clavicle and coracoid bars;
    - pivot and feather hole sizes.
 5. Click **Export part templates (SVG)**.
 
-Settings save automatically in your browser. Use **Reset dimensions** to go back to the preset while keeping your view options.
+Settings save automatically in your browser. **Undo** (or ⌘/Ctrl+Z) steps back one change at a time; **Reset dimensions** goes back to the preset while keeping your view options.
 
 ## Templates
 

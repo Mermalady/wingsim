@@ -98,6 +98,12 @@ input[type=range]{width:100%;accent-color:var(--link)}
   .sub{display:none}
   .hint{display:none}
 }
+.viewbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
+.viewbar .vlabel{font-family:var(--font-display);font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.viewbar button{font-size:12px;padding:3px 10px;border-radius:99px;background:transparent;color:var(--muted)}
+.viewbar button[aria-pressed=true]{background:var(--link-soft);border-color:var(--link);color:var(--ink)}
+.viewbar button[aria-pressed=true]::before{content:"✓ ";color:var(--link)}
+button:disabled{opacity:.45;cursor:default}
 @media (prefers-reduced-motion: reduce){.toast{transition:none}}
 </style>
 </head>
@@ -112,17 +118,27 @@ input[type=range]{width:100%;accent-color:var(--link)}
         <option value="swan">Swan proportions (long arm)</option>
         <option value="swift">Swift proportions (long hand)</option>
       </select>
+      <button id="undoBtn" disabled title="Nothing to undo">↶ Undo</button>
       <button id="resetBtn" title="Reset all dimensions to the preset; view options stay">Reset dimensions</button>
       <button id="play" class="primary">Play</button>
       <input id="speed" type="range" min="0.1" max="2" step="0.05" aria-label="Animation speed" style="width:90px">
-      <button id="featherBtn" class="tog" aria-pressed="true">Feathers on</button>
-      <button id="handleBtn" class="tog" aria-pressed="true">Handle on</button>
-      <button id="traceBtn" class="tog" aria-pressed="true">Traces on</button>
       <select id="units" aria-label="Units"><option value="in">inches</option><option value="cm">centimeters</option></select>
     </div>
   </header>
   <div class="work">
     <div class="stagecol">
+      <div class="viewbar" id="viewbar" role="group" aria-label="View options">
+        <span class="vlabel">View</span>
+        <button data-k="showFeathers" aria-pressed="true">Feathers</button>
+        <button data-k="showHoles" aria-pressed="true">Feather holes</button>
+        <button data-k="handle" aria-pressed="true">Handle</button>
+        <button data-k="gripPath" aria-pressed="false">Handle path</button>
+        <button data-k="trace" aria-pressed="false">Wingtip path</button>
+        <button data-k="bothWings" aria-pressed="false">Both wings + figure</button>
+        <button data-k="arcs" aria-pressed="true">Joint angles</button>
+        <button data-k="labels" aria-pressed="true">Part labels</button>
+        <button data-k="pinLabels" aria-pressed="true">Pin labels</button>
+      </div>
       <section class="stage" id="stage">
         <canvas id="view" aria-label="Wing skeleton view"></canvas>
         <div class="hint" id="hint">Drag the handle grip, lift ring or any ringed joint · scroll to zoom · drag empty space to pan</div>
@@ -169,12 +185,12 @@ const DEF={
   refShoulder:-47.5, refElbow:90, refWrist:100, tRefElbow:20, tRefWrist:20,
   shoulder:-8, elbow:20,
   elbowMin:12, elbowMax:120, pivOpen:-8, pivFold:-105.5,
-  handleAt:'elbow', handleLen:450, handleAng:-100, handleDir:-95, layout:'back', handType:'single', elbowPlate:false, sharedPlate:false, pivotSpread:260, wristFixed:false, wristFix:25, guideMode:'tabs', gB:40, guidePrim:true,
+  handleAt:'elbow', handleWhere:'elbow', handleLen:450, handleAng:-100, handleDir:-95, layout:'back', handType:'single', elbowPlate:false, sharedPlate:false, pivotSpread:260, wristFixed:false, wristFix:25, guideMode:'tabs', gB:40, guidePrim:true,
   showFeathers:true, primaries:10, secondaries:13, pIn:300, pOut:430, sLen:260, tuck:0.8, tertials:4, tLen:200, pCov:7, pcLen:150, mCov:7, mcLen:95, pcOn:false, mcOn:false, liftOn:false, liftAng:0, liftHx:-30, liftHy:40,
   guides:false, gS:114.5, aS:15, bS:18, gP:60.5, aP:76, bP:224,
-  ghosts:false, trace:false, labels:true, arcs:true, gripPath:false, showHoles:true, bothWings:false, plateRaise:0, figH:1727, figShoulder:410,
+  ghosts:false, trace:false, labels:true, pinLabels:true, arcs:true, gripPath:false, showHoles:true, bothWings:false, plateRaise:0, figH:1727, figShoulder:410,
   barWidth:19.05, wCor:19.05, wClav:19.05, wUlna:19.05, wRad:19.05, wHand:19.05, wHandle:19.05, baseFlare:false, baseW:38, baseLen:60, holeDia:6.4, fHoles:true, fHoleDia:3.2,
-  units:'in', animMode:'fold', speed:0.6, preset:'raptor', clavLen:0
+  units:'in', animMode:'fold', speed:0.6, preset:'raptor', clavLen:0, ruSpace:0
 };
 const PRESETS={
   raptor:{humerus:300,forearm:360,hand:280,primaries:10,secondaries:13,pIn:300,pOut:430,sLen:260},
@@ -185,8 +201,16 @@ const PRESETS={
 const STORE='wingsim-v6';
 let P=Object.assign({},DEF);
 try{const s=localStorage.getItem(STORE); if(s){const o=JSON.parse(s);for(const k in DEF)if(k in o)P[k]=o[k];}}catch(e){}
-if(P.handleAt==='wrist'||P.handleAt==='angled')P.handleAt='elbow';P.kSpace=0;
-const persist=()=>{try{localStorage.setItem(STORE,JSON.stringify(P))}catch(e){}};
+if(P.handleAt==='angled')P.handleAt='elbow';if(P.handleWhere!=='wrist')P.handleWhere='elbow';if(P.handleAt!=='none')P.handleAt=P.handleWhere;P.kSpace=0;
+const persist=()=>{try{localStorage.setItem(STORE,JSON.stringify(P))}catch(e){}noteChange();};
+// Undo: every settled change (a slider drag counts as one) pushes the previous settings onto a stack.
+var HIST=[],lastSnap=null,histT=null;const NOHIST=['shoulder','elbow','speed','clavLen','ruSpace'];
+function snap(){const o={};for(const k in P)if(!NOHIST.includes(k))o[k]=P[k];return JSON.stringify(o);}
+function flushHist(){clearTimeout(histT);histT=null;const s=snap();if(lastSnap===null){lastSnap=s;return;}if(s!==lastSnap){HIST.push(lastSnap);if(HIST.length>150)HIST.shift();lastSnap=s;}updUndo();}
+function noteChange(){if(lastSnap===null){lastSnap=snap();return;}clearTimeout(histT);histT=setTimeout(flushHist,450);}
+function updUndo(){const b=document.getElementById('undoBtn');if(b){b.disabled=!HIST.length;b.title=HIST.length?`Undo the last change (${HIST.length} available) · ⌘/Ctrl+Z`:'Nothing to undo';}}
+function undo(){if(histT)flushHist();if(!HIST.length){toast('Nothing to undo');return;}const s=HIST.pop(),sh=P.shoulder,el=P.elbow,sp=P.speed;
+  P=Object.assign({},DEF,JSON.parse(s),{shoulder:sh,elbow:el,speed:sp});lastSnap=s;lastBW=P.barWidth;TRACE=[];buildPanel();paramChanged(false);syncAll();lastSnap=snap();updUndo();toast('Undid last change');}
 const tied=()=>P.mode==='tied';
 P.layout='back';P.handType='single';P.clavLen=P.clavLen||0;P.animMode='fold';P.mode='pivot';P.refElbow=90;P.guides=false;P.elbowPlate=false;P.wristFixed=false;P.guideMode='tabs';
 const mountName=()=>'backplate';
@@ -216,6 +240,11 @@ function pick(sols,c,pred,off){let best=null,bd=Infinity;
   for(const H of sols){let a=ang(sub(H,c))-off;a+=Math.round((pred-a)/(2*Math.PI))*2*Math.PI;const d=Math.abs(a-pred);if(d<bd){bd=d;best=a;}}
   return {a:best,d:bd};}
 const handPin=(W,ak)=>at(W,ak,P.kAlong,P.kSpace);
+// Radius–ulna spacing: how far the radius's inner pin sits off the ulna centreline at the build pose.
+function ruSpacing(){if(tied())return 0;const th=P.refShoulder*D2R,E=at(V(0,0),th,P.humerus),af=th+P.refElbow*D2R,O=at(E,th,0,P.hSpace),
+  C2=at(V(0,0),th,P.cAlong,P.hSpace+P.cAcross),R0=add(O,mul(unit(sub(C2,O)),P.hSet)),d=sub(R0,E),n=nor(af);return Math.abs(d.x*n.x+d.y*n.y);}
+// Scale both radius pins (on the clavicle bar and on the hand) together to reach a new spacing.
+function setRU(v){const c=ruSpacing();if(!(c>0.01)||!(v>0))return;const k=v/c;P.hSet=+(P.hSet*k).toFixed(2);P.kAlong=+(P.kAlong*k).toFixed(2);}
 function derive(){QC=null;
   G.rH=Math.hypot(P.kAlong,P.kSpace); G.beta=Math.atan2(P.kSpace,P.kAlong);
   G.fb0=Math.max(20,P.barWidth*1.2); // tied: front bar starts this far out from the shoulder
@@ -251,6 +280,7 @@ function derive(){QC=null;
   let lo=null,hi=null;for(let i=0;i<TB.a.length;i++)if(isFinite(TB.a[i])){const x=TB.x0+i*TB.step;if(lo===null)lo=x;hi=x;}
   G.valid=lo===null?{lo:0,hi:0,broken:true}:{lo,hi};
   if(!tied())P.clavLen=G.Lfb;
+  P.ruSpace=+ruSpacing().toFixed(2);
 }
 function interp(arr,x){const f=(x-TB.x0)/TB.step,i=Math.floor(f),t=f-i;const a=arr[i],b=arr[i+1];
   if(t<1e-9)return a;if(!isFinite(a)||!isFinite(b))return NaN;return a+(b-a)*t;}
@@ -272,7 +302,7 @@ function pose0(sh,el){
   let mu2=null;if(O){const a=sub(C2,O),b=sub(E,O);mu2=Math.acos(clamp((a.x*b.x+a.y*b.y)/(len(a)*len(b)||1),-1,1))*R2D;}
   let J=null,Anc=null,Gp=null;
   let gus=null;
-  if(P.handleAt==='elbow'){J=E;Gp=at(E,P.handleDir*D2R,P.handleLen);}
+  if(P.handleAt==='elbow'||P.handleAt==='wrist'){J=P.handleAt==='wrist'?W:E;Gp=at(J,P.handleDir*D2R,P.handleLen);}
   return {C1,C2,E,W,O,R0,F0,H1,T,TA,J,Anc,Gp,gus,WU:at(W,af,-40),th,af,ak,ok,mu,mu2,shoulder:sh,elbow:(af-th)*R2D,wristFlex:(af-ak)*R2D};
 }
 // Lift hinge: the shoulder pivots sit on a lift plate that hinges on the backplate; the whole wing rotates by the lift angle.
@@ -280,7 +310,7 @@ const hingePt=()=>V(P.liftHx,P.liftHy);
 function pose(sh,el){const p=pose0(sh,el);if(!P.liftOn||!P.liftAng)return p;
   const a=P.liftAng*D2R,c=Math.cos(a),s=Math.sin(a),h=hingePt(),R=q=>q?V(h.x+(q.x-h.x)*c-(q.y-h.y)*s,h.y+(q.x-h.x)*s+(q.y-h.y)*c):q;
   for(const k of['C1','C2','E','W','O','R0','F0','H1','T','TA','J','Anc','WU'])p[k]=R(p[k]);if(p.gus)p.gus=p.gus.map(R);
-  p.th+=a;p.af+=a;p.ak+=a;if(p.Gp)p.Gp=at(p.E,P.handleDir*D2R,P.handleLen);return p;}
+  p.th+=a;p.af+=a;p.ak+=a;if(p.Gp)p.Gp=at(p.J,P.handleDir*D2R,P.handleLen);return p;}
 // Fold range in the input coordinate: tied → elbow flex (open a < folded b); pivot → shoulder angle (open a > folded b)
 function FR(){const v=G.valid;
   if(tied()){const a=Math.max(P.elbowMin,v.lo),b=Math.min(P.elbowMax,v.hi);return {a,b:Math.max(a,b)};}
@@ -406,7 +436,7 @@ function shapes(p){
   for(const x of humRungs())rung(p.C1,p.th,x,P.hSpace,'coracoid');
   for(const x of handRungs())rung(p.W,p.ak,x,P.kSpace,'hand');
   if(!P.wristFixed)S.push({k:'bar',col:'radius',c:[p.R0,p.H1],w:P.wRad});
-  if(p.Gp){S.push({k:'bar',col:'handle',c:[p.E,p.Gp],w:P.wHandle});if(p.gus){S.push({k:'rung',col:'plate',c:p.gus,w:w*0.9});for(const q of p.gus)H.push({p:q,d:hd});}}
+  if(p.Gp){S.push({k:'bar',col:'handle',c:[p.J,p.Gp],w:P.wHandle});if(p.gus){S.push({k:'rung',col:'plate',c:p.gus,w:w*0.9});for(const q of p.gus)H.push({p:q,d:hd});}}
   if(P.showFeathers&&P.guides&&GD){const gl=guideLines(p),fs=feathers(p),groups=P.guideMode==='pins'?[['s','p']]:[['s'],['p']];
     for(const ks of groups){const {A,B}=gl[ks[0]],e=unit(sub(B,A));let end=len(sub(B,A)),st=0,any=false;
       fs.forEach((f,i)=>{if(ks.includes(f.kind)&&GD[i]!=null){any=true;end=Math.max(end,GD[i]);st=Math.min(st,GD[i]);H.push({p:f.pin,d:P.fHoleDia});}});
@@ -539,8 +569,17 @@ function drawLabels(p,S){
   if(!tied())lab(p.C2,p.O,'clavicle bar',1);
   lab(p.E,p.W,'ulna',-1);if(!P.wristFixed)lab(p.R0,p.H1,'radius',1);
   lab(p.W,p.T,'hand',1);
-  if(p.Gp)lab(p.E,p.Gp,'handle',1);
+  if(p.Gp)lab(p.J,p.Gp,'handle',1);
   const h=harness(),m=toS(mul(add(h[0],h[1]),0.5));ctx.textAlign='right';ctx.fillText(mountName(),m.x-P.barWidth*VW.scale-6,m.y+4);ctx.textAlign='left';
+}
+function drawPinLabels(p){
+  const L=[[p.C1,'coracoid pivot'],[p.C2,'clavicle pivot'],[p.E,p.Gp&&P.handleAt==='elbow'?'elbow + handle':'elbow'],[p.O,'ulna pin'],[p.R0,'radius pin'],
+    [p.W,p.Gp&&P.handleAt==='wrist'?'wrist + handle':'wrist'],[p.H1,'wrist pin'],[p.Gp,'grip'],...(P.liftOn&&!tied()?[[hingePt(),'lift hinge']]:[])];
+  ctx.font=`600 10.5px ${TH.body}`;ctx.textAlign='left';ctx.lineJoin='round';const placed=[];
+  for(const [q,t] of L){if(!q||(P.wristFixed&&(t==='wrist pin'||t==='radius pin')))continue;const s=toS(q);
+    let x=s.x+9,y=s.y-9;const w=ctx.measureText(t).width;
+    for(let k=0;k<6&&placed.some(b=>x<b.x+b.w+3&&x+w+3>b.x&&Math.abs(y-b.y)<12);k++)y+=13*(k%2?-(k+1):(k+1));
+    placed.push({x,y,w});ctx.strokeStyle=TH.bg;ctx.lineWidth=3;ctx.strokeText(t,x,y);ctx.fillStyle=TH.ink;ctx.fillText(t,x,y);}
 }
 let TRACE=[],dragging=null,HANDLES=[];
 function drawFigureAndLeft(p){
@@ -572,6 +611,7 @@ function draw(){
   if(tied()&&P.arcs!==false){/* C2 unused in tied mode */}
   if(P.arcs)drawArcs(p);
   if(P.labels)drawLabels(p,S);
+  if(P.pinLabels)drawPinLabels(p);
   {const used=[...new Set(S.map(x=>x.col))],names={mount:mountName(),lift:'lift plate',coracoid:tied()?'humerus rear':'coracoid bar',clavicle:tied()?'humerus front':'clavicle bar',ulna:'ulna',radius:'radius',hand:'hand',plate:'plates',handle:'handle',guide:'feather guide'};
     ctx.font=`11px ${TH.body}`;let y=56;const kx=W_-118;for(const k of used){ctx.fillStyle=PC[k];ctx.fillRect(kx,y-9,12,10);ctx.strokeStyle="rgba(0,0,0,.5)";ctx.lineWidth=1;ctx.strokeRect(kx,y-9,12,10);ctx.fillStyle=TH.muted;ctx.textAlign="left";ctx.fillText(names[k],kx+18,y);y+=15;}}
   const t=toS(p.T);ctx.fillStyle=TH.trace;ctx.beginPath();ctx.arc(t.x,t.y,3.5,0,Math.PI*2);ctx.fill();
@@ -605,8 +645,8 @@ cv.addEventListener('pointermove',e=>{const r=cv.getBoundingClientRect(),m=V(e.c
     } else if(dragging==='lift'){const h=hingePt();P.liftAng=clamp(wrapDeg((ang(sub(w,h))-ang(sub(V(0,0),h)))*R2D),-30,100);syncAll();
     } else if(dragging==='hinge'){P.liftHx=clamp(w.x,-300,100);P.liftHy=clamp(w.y,-150,250);syncAll();
     } else if(dragging==='grip'){const r=FR();let best=P.shoulder,bd=Infinity;
-        for(let x=r.a;x>=r.b-1e-9;x-=0.25){const E=pose(x).E,d=Math.abs(len(sub(w,E))-P.handleLen);if(d<bd){bd=d;best=x;}}
-        P.shoulder=best;P.handleDir=ang(sub(w,pose(best).E))*R2D;
+        for(let x=r.a;x>=r.b-1e-9;x-=0.25){const E=pose(x).J,d=Math.abs(len(sub(w,E))-P.handleLen);if(d<bd){bd=d;best=x;}}
+        P.shoulder=best;P.handleDir=ang(sub(w,pose(best).J))*R2D;
     } else {const key={elbow:'E',wrist:'W'}[dragging];P.shoulder=nearestPivot(q=>q[key],w);}
     poseChanged();syncPose();return;}
   if(panStart){VW.ox=panStart.ox+m.x-panStart.m.x;VW.oy=panStart.oy+m.y-panStart.m.y;VW.user=true;draw();}
@@ -701,49 +741,29 @@ function readouts(){
 
 /* ---------- controls ---------- */
 const GROUPS=[
-  {title:'View',open:true,items:[
-    {type:'check',key:'gripPath',label:'Handle path (at the hold angle)'},
-    {type:'check',key:'trace',label:'Wingtip path while animating'},
-    {type:'check',key:'showHoles',label:'Feather drill holes'},
-    {type:'check',key:'bothWings',label:'Both wings + human figure for scale'},
-    {key:'figH',label:'Figure height',hint:'5′8″ = 68 in',min:1200,max:2150,step:1,u:'len',needs:'both'},
-    {key:'figShoulder',label:'Figure shoulder width',hint:'outside of shoulders',min:280,max:600,step:1,u:'len',needs:'both'},
-    {key:'plateRaise',label:'Backplate height',hint:'0 = top at shoulders, − lowers',min:-400,max:200,step:1,u:'len',needs:'both'},
-    {key:'handleDir',label:'Handle hold angle',hint:'−90 = straight down',min:-180,max:180,step:1,u:'deg',needs:'handle'},
-    {type:'check',key:'arcs',label:'Joint angle arcs'},
-    {type:'check',key:'labels',label:'Part labels'}
-  ]},
   {title:'Overall size',open:true,items:[
     {type:'span'},
     {key:'pivotSpread',label:'Back width',hint:'left ↔ right shoulder pivots',min:80,max:500,step:1,u:'len'},
     {type:'explain',text:'Drag the slider or type the tip-to-tip wingspan you want with both wings fully open (including feathers). Every bone, pin position, feather and the handle scale together, so the mechanism moves exactly the same; bar width, hole sizes and back width stay as they are.'}
   ]},
-  {title:'Lift hinge',open:true,items:[
-    {type:'check',key:'liftOn',label:'Lift hinge (raise the whole wing)'},
-    {key:'liftAng',label:'Lift angle',hint:'+ raises the wing',min:-30,max:100,step:0.5,u:'deg',needs:'lift'},
-    {key:'liftHx',label:'Hinge position',hint:'− toward the spine',min:-300,max:100,step:1,u:'len',needs:'lift'},
-    {key:'liftHy',label:'Hinge height',hint:'above the coracoid pivot',min:-150,max:250,step:1,u:'len',needs:'lift'},
-    {type:'explain',text:'Drag the brown ring on the lift plate to raise or lower the wing. Both shoulder pivots move onto a lift plate that hinges on the backplate near the spine. Rotating it raises or lowers the whole wing, and the fold works the same at any lift angle. Drive it with a cord, a second handle or a gas spring, and add a stop on the backplate at the lowest position.'}
-  ]},
-  {title:'Bones',items:[
+  {title:'Bone dimensions',items:[
     {type:'explain',text:'Centre-to-centre lengths of each bar. Longer bones make a bigger wing; changing one bone relative to the others changes how far each joint folds and where the wingtip ends up. The clavicle bar length tunes how much the elbow bends per degree of shoulder swing.'},
     {key:'humerus',label:'Coracoid bar',hint:'humerus: shoulder → elbow',min:40,max:800,step:1,u:'len'},
     {key:'clavLen',label:'Clavicle bar',hint:'backplate pin → ulna pin',min:60,max:900,step:0.5,u:'len'},
     {key:'forearm',label:'Ulna',hint:'elbow → wrist',min:40,max:800,step:1,u:'len'},
-    {key:'hand',label:'Hand',hint:'wrist → tip',min:40,max:800,step:1,u:'len'},
-    {key:'handleLen',label:'Handle',hint:'elbow → grip',min:20,max:900,step:1,u:'len',needs:'handle'},
+    {key:'hand',label:'Hand',hint:'wrist → tip',min:40,max:800,step:1,u:'len'}
   ]},
-  {title:'Humerus bars & backplate',open:true,items:[
-    {type:'check',key:'sharedPlate',label:'One-piece backplate for both wings'},
-    {key:'hSpace',label:'Bar spacing',hint:'centre to centre',min:0,max:150,step:0.5,u:'len'},
-    {key:'hSet',label:'Radius pin',hint:'in from front bar end',min:5,max:250,step:0.5,u:'len'},
+  {title:'Kinematics',open:true,items:[
+    {type:'explain',text:'Where the linkage pins sit. These set how one shoulder swing drives the elbow and the wrist.'},
+    {key:'hSpace',label:'Bar spacing',hint:'coracoid ↔ clavicle, centre to centre',min:0,max:150,step:0.5,u:'len'},
     {key:'cAlong',label:'Clavicle pivot',hint:'shift outward',min:-150,max:100,step:0.5,u:'len',only:'pivot'},
     {key:'cAcross',label:'Clavicle pivot',hint:'shift forward',min:-60,max:80,step:0.5,u:'len',only:'pivot'},
-    {type:'explain',only:'pivot',text:'With both pivot shifts at 0 the humerus is a true parallelogram and the ulna keeps its heading while the shoulder swings. Moving the clavicle pivot back (negative forward shift) makes the forearm swing forward as the wing folds, for a tighter tuck.'}
-  ]},
-  {title:'Hand',open:true,items:[
-    {key:'kAlong',needs2:'radius',label:'Radius pin on hand',hint:'− = behind the wrist',min:-150,max:150,step:0.5,u:'len'},
-    {type:'explain',text:'The hand is one straight bar. It pivots on the ulna at the wrist, and the radius pins to it on the same centreline; when the pin sits behind the wrist the bar simply extends past the wrist to reach it.'}
+    {type:'explain',only:'pivot',text:'With both pivot shifts at 0 the humerus is a true parallelogram and the ulna keeps its heading while the shoulder swings. Moving the clavicle pivot back (negative forward shift) makes the forearm swing forward as the wing folds, for a tighter tuck.'},
+    {key:'hSet',label:'Radius pin on clavicle',hint:'in from the ulna pin',min:5,max:250,step:0.5,u:'len'},
+    {key:'kAlong',needs2:'radius',label:'Wrist pin',hint:'radius → hand; − = behind the wrist',min:-250,max:150,step:0.5,u:'len'},
+    {type:'explain',text:'The wrist pin is where the radius pins to the hand, measured from the wrist along the hand bar (the hand bar extends behind the wrist to reach it). Lower it (further behind the wrist) and the wrist folds less and does not fully straighten when open, but the motion is smoother with less binding. Raise it (closer to the wrist) and the wrist folds harder, until the linkage locks and the fold range shrinks. Above 0 the hand folds the wrong way.'},
+    {key:'ruSpace',needs2:'radius',label:'Radius–ulna spacing',hint:'radius pin off the ulna, build pose',min:5,max:150,step:0.5,u:'len'},
+    {type:'explain',text:'Moves the radius toward or away from the ulna by sliding both radius pins together. The fold motion stays almost the same. Closer spacing makes a slimmer forearm but puts more load on the pins and makes any play in the joints more noticeable; below about one bar width the radius and ulna bars rub.'}
   ]},
   {title:'Fold range',items:[
     {type:'explain',text:'Where the shoulder stops when fully open and fully folded. Play and dragging stay inside these limits; on the real wing, put hard stops here.'},
@@ -752,9 +772,21 @@ const GROUPS=[
     {key:'pivOpen',label:'Shoulder open stop',min:-60,max:90,step:0.5,u:'deg',only:'pivot'},
     {key:'pivFold',label:'Shoulder fold stop',min:-150,max:30,step:0.5,u:'deg',only:'pivot'}
   ]},
+  {title:'Handle',open:true,items:[
+    {type:'explain',text:'The handle is a bar that pivots freely on a joint bolt; pulling or pushing the grip folds the wing. At the elbow it needs a shorter throw; at the end of the ulna (wrist) it gets more leverage but the grip travels further. Turn the handle on or off in the view bar.'},
+    {type:'seg',key:'handleWhere',opts:[['elbow','At the elbow'],['wrist','End of ulna (wrist)']]},
+    {key:'handleLen',label:'Handle length',hint:'pivot → grip',min:20,max:900,step:1,u:'len',needs:'handle'},
+    {key:'handleDir',label:'Handle hold angle',hint:'−90 = straight down',min:-180,max:180,step:1,u:'deg',needs:'handle'}
+  ]},
+  {title:'Lift hinge',open:true,items:[
+    {type:'check',key:'liftOn',label:'Lift hinge (raise the whole wing)'},
+    {key:'liftAng',label:'Lift angle',hint:'+ raises the wing',min:-30,max:100,step:0.5,u:'deg',needs:'lift'},
+    {key:'liftHx',label:'Hinge position',hint:'− toward the spine',min:-300,max:100,step:1,u:'len',needs:'lift'},
+    {key:'liftHy',label:'Hinge height',hint:'above the coracoid pivot',min:-150,max:250,step:1,u:'len',needs:'lift'},
+    {type:'explain',text:'Drag the brown ring on the lift plate to raise or lower the wing. Both shoulder pivots move onto a lift plate that hinges on the backplate near the spine. Rotating it raises or lowers the whole wing, and the fold works the same at any lift angle. Drive it with a cord, a second handle or a gas spring, and add a stop on the backplate at the lowest position.'}
+  ]},
   {title:'Feathers',items:[
     {type:'explain',text:'How many feathers mount on each bone and how long they are. Counts set the number of quill holes on the templates; lengths change the wing outline and span. Fold tuck only changes how the drawing swings feathers in as the wing folds.'},
-    {type:'check',key:'showFeathers',label:'Show feathers'},
     {key:'primaries',label:'Primaries',hint:'on the hand',min:0,max:14,step:1,u:'n'},
     {key:'secondaries',label:'Secondaries',hint:'on the ulna',min:0,max:24,step:1,u:'n'},
     {key:'tertials',label:'Tertials',hint:'on the humerus, by the elbow',min:0,max:8,step:1,u:'n'},
@@ -770,17 +802,24 @@ const GROUPS=[
     {key:'mcLen',label:'Marginal covert length',min:20,max:400,step:1,u:'len',needs:'mc'},
     {key:'tuck',label:'Fold tuck',hint:'how far feathers swing in',min:0,max:1,step:0.01,u:'ratio',needs:'noguides'}
   ]},
+  {title:'Figure',items:[
+    {type:'explain',text:'The human figure used for scale. Turn on "Both wings + figure" in the view bar to see it.'},
+    {key:'figH',label:'Figure height',hint:'5′8″ = 68 in',min:1200,max:2150,step:1,u:'len'},
+    {key:'figShoulder',label:'Figure shoulder width',hint:'outside of shoulders',min:280,max:600,step:1,u:'len'},
+    {key:'plateRaise',label:'Backplate height',hint:'0 = top at shoulders, − lowers',min:-400,max:200,step:1,u:'len'}
+  ]},
   {title:'Build & export',open:true,items:[
-    {key:'barWidth',label:'Overall bar thickness',hint:'sets every bar at once',min:6,max:80,step:0.05,u:'len'},
-    {key:'wCor',label:'Coracoid bar',hint:'thickness',min:6,max:80,step:0.05,u:'len'},
-    {key:'wClav',label:'Clavicle bar',hint:'thickness',min:6,max:80,step:0.05,u:'len'},
-    {key:'wUlna',label:'Ulna',hint:'thickness',min:6,max:80,step:0.05,u:'len'},
-    {key:'wRad',label:'Radius',hint:'thickness',min:6,max:80,step:0.05,u:'len'},
-    {key:'wHand',label:'Hand bar',hint:'thickness',min:6,max:80,step:0.05,u:'len'},
-    {key:'wHandle',label:'Handle',hint:'thickness',min:6,max:80,step:0.05,u:'len'},
+    {type:'check',key:'sharedPlate',label:'One-piece backplate for both wings'},
+    {key:'barWidth',label:'Overall bar width',hint:'sets every bar at once',min:6,max:80,step:0.05,u:'len'},
+    {key:'wCor',label:'Coracoid bar',hint:'width',min:6,max:80,step:0.05,u:'len'},
+    {key:'wClav',label:'Clavicle bar',hint:'width',min:6,max:80,step:0.05,u:'len'},
+    {key:'wUlna',label:'Ulna',hint:'width',min:6,max:80,step:0.05,u:'len'},
+    {key:'wRad',label:'Radius',hint:'width',min:6,max:80,step:0.05,u:'len'},
+    {key:'wHand',label:'Hand bar',hint:'width',min:6,max:80,step:0.05,u:'len'},
+    {key:'wHandle',label:'Handle',hint:'width',min:6,max:80,step:0.05,u:'len'},
     {type:'check',key:'baseFlare',label:'Widen the coracoid and clavicle bar bases (backplate end)'},
     {key:'baseW',label:'Base width',hint:'at the backplate pivot',min:10,max:120,step:0.5,u:'len',needs:'flare'},
-    {key:'baseLen',label:'Taper length',hint:'back to bar thickness',min:10,max:300,step:1,u:'len',needs:'flare'},
+    {key:'baseLen',label:'Taper length',hint:'back to bar width',min:10,max:300,step:1,u:'len',needs:'flare'},
     {key:'holeDia',label:'Pivot hole Ø',hint:'¼″ bolt ≈ 0.64 cm',min:1,max:20,step:0.05,u:'len'},
     {type:'check',key:'fHoles',label:'Drill feather mount holes'},
     {key:'fHoleDia',label:'Feather hole Ø',min:1,max:10,step:0.05,u:'len'},
@@ -792,15 +831,15 @@ const panel=document.getElementById('panel');const CTRL={};const EXPL=[];
 function dispVal(it,v){if(it.u==='len')return +toU(v).toFixed(P.units==='in'?3:2);return +(+v).toFixed(2);}
 function buildPanel(){
   panel.innerHTML='';for(const k in CTRL)delete CTRL[k];EXPL.length=0;
-  let openState={};try{openState=JSON.parse(localStorage.getItem('wingsim-open3')||'{}')}catch(e){}
+  let openState={};try{openState=JSON.parse(localStorage.getItem('wingsim-open4')||'{}')}catch(e){}
   GROUPS.forEach((g,gi)=>{
     const d=document.createElement('details');d.open=openState[gi]??!!g.open;
-    d.addEventListener('toggle',()=>{openState[gi]=d.open;try{localStorage.setItem('wingsim-open3',JSON.stringify(openState))}catch(e){}});
+    d.addEventListener('toggle',()=>{openState[gi]=d.open;try{localStorage.setItem('wingsim-open4',JSON.stringify(openState))}catch(e){}});
     d.innerHTML=`<summary>${g.title}</summary>`;const box=document.createElement('div');box.className='grp';d.appendChild(box);
     for(const it of g.items){
       if(it.type==='seg'){const s=document.createElement('div');s.className='seg';s.setAttribute('role','group');
         for(const [v,l] of it.opts){const b=document.createElement('button');b.id=`seg_${it.key}_${v}`;b.dataset.v=v;b.textContent=l;
-          b.onclick=()=>{P[it.key]=v;if(it.key==='mode'){if(v==='pivot')P.shoulder=clamp(P.shoulder,P.pivFold,P.pivOpen);VW.user=false;}paramChanged(true);syncAll();};s.appendChild(b);}
+          b.onclick=()=>{P[it.key]=v;if(it.key==='handleWhere'&&P.handleAt!=='none'){P.handleAt=v;VW.user=false;}if(it.key==='mode'){if(v==='pivot')P.shoulder=clamp(P.shoulder,P.pivFold,P.pivOpen);VW.user=false;}paramChanged(true);syncAll();};s.appendChild(b);}
         box.appendChild(s);CTRL[it.key]={it,el:s};continue;}
       if(it.type==='explain'){const p=document.createElement('p');p.className='explain';p.textContent=it.text;box.appendChild(p);EXPL.push({it,el:p});continue;}
       if(it.type==='check'){const l=document.createElement('label');l.className='check';l.innerHTML=`<input type="checkbox" id="c_${it.key}"> ${it.label}`;
@@ -836,7 +875,7 @@ const POSE_KEYS=new Set(['shoulder','elbow']);
 function setClavLen(L){const th=P.refShoulder*D2R,E=at(V(0,0),th,P.humerus),O=at(E,th,0,P.hSpace),C2=at(V(0,0),th,P.cAlong,P.hSpace+P.cAcross);
   const N=add(O,mul(unit(sub(C2,O)),Math.max(10,L))),u=dir(th),n=nor(th);P.cAlong=+(N.x*u.x+N.y*u.y).toFixed(2);P.cAcross=+((N.x*n.x+N.y*n.y)-P.hSpace).toFixed(2);}
 const BAR_W=['wCor','wClav','wUlna','wRad','wHand','wHandle'];let lastBW=null;
-function onCtl(key){if(key==='barWidth'){const k=lastBW?P.barWidth/lastBW:1;for(const b of BAR_W)P[b]=+(P[b]*k).toFixed(2);syncAll();}lastBW=P.barWidth;if(key==='clavLen')setClavLen(P.clavLen);if(POSE_KEYS.has(key)){clampInput();poseChanged();syncPose();return;}paramChanged(false);if(key==='handleLen'||key==='handleAng')return;}
+function onCtl(key){if(key==='barWidth'){const k=lastBW?P.barWidth/lastBW:1;for(const b of BAR_W)P[b]=+(P[b]*k).toFixed(2);syncAll();}lastBW=P.barWidth;if(key==='clavLen')setClavLen(P.clavLen);if(key==='ruSpace')setRU(P.ruSpace);if(POSE_KEYS.has(key)){clampInput();poseChanged();syncPose();return;}paramChanged(false);if(key==='handleLen'||key==='handleAng')return;}
 const visible=it=>!it.only||it.only===P.mode;
 function syncAll(){
   for(const k in CTRL){const c=CTRL[k],it=c.it;
@@ -849,18 +888,17 @@ function syncAll(){
   for(const e of EXPL)e.el.hidden=!visible(e.it);
   syncPose();
   document.getElementById('units').value=P.units;document.getElementById('speed').value=P.speed;document.getElementById('preset').value=P.preset;
-  const tb=(id,on,label)=>{const b=document.getElementById(id);b.setAttribute('aria-pressed',String(!!on));b.textContent=label+(on?' on':' off');};
-  tb('handleBtn',P.handleAt!=='none','Handle');tb('traceBtn',P.gripPath||P.trace,'Traces');
-  const fb=document.getElementById('featherBtn');fb.setAttribute('aria-pressed',String(!!P.showFeathers));fb.textContent=P.showFeathers?'Feathers on':'Feathers off';
+  for(const b of document.querySelectorAll('#viewbar button[data-k]')){const k=b.dataset.k;b.setAttribute('aria-pressed',String(k==='handle'?P.handleAt!=='none':!!P[k]));}
+  updUndo();
 }
 function syncPose(){const p=cur();const vals={shoulder:p.shoulder,elbow:p.elbow,wrist:p.wristFlex};
   for(const k of['shoulder','elbow','wrist']){const c=CTRL[k];if(!c)continue;if(document.activeElement!==c.rg)c.rg.value=vals[k];if(document.activeElement!==c.nm)c.nm.value=(+vals[k]).toFixed(1);}}
 function poseChanged(){if(P.trace&&playing){TRACE.push(cur().T);if(TRACE.length>600)TRACE.shift();}draw();drawChart();readouts();}
 function paramChanged(refit){derive();QC=null;clampInput();computeGuides();buildChart();TRACE=[];if(refit&&!VW.user)fit();draw();drawChart();readouts();persist();const sp=CTRL.__span;if(sp){const v=openSpan();if(document.activeElement!==sp.nm)sp.nm.value=+toU(v).toFixed(P.units==='in'?1:0);if(document.activeElement!==sp.rg)sp.rg.value=v;}}
-const VIEW_KEYS=['units','speed','showFeathers','handleAt','handleDir','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn'];
+const VIEW_KEYS=['units','speed','showFeathers','handleAt','handleWhere','pinLabels','handleDir','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn'];
 function resetDims(){const keep={};for(const k of VIEW_KEYS)keep[k]=P[k];P=Object.assign({},DEF,PRESETS[P.preset]||{},keep,{preset:P.preset});
   TRACE=[];paramChanged(false);syncAll();toast('Dimensions reset to '+document.querySelector(`#preset option[value=${P.preset}]`).textContent.toLowerCase());}
-function applyPreset(name){const keep={};for(const k of['units','animMode','speed','mode','handleAt','handleLen','handleDir','showFeathers','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','sharedPlate','pcOn','mcOn','pivotSpread','barWidth','wCor','wClav','wUlna','wRad','wHand','wHandle','baseFlare','baseW','baseLen','holeDia','fHoleDia','fHoles'])keep[k]=P[k];
+function applyPreset(name){const keep={};for(const k of['units','animMode','speed','mode','handleAt','handleWhere','pinLabels','handleLen','handleDir','showFeathers','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','sharedPlate','pcOn','mcOn','pivotSpread','barWidth','wCor','wClav','wUlna','wRad','wHand','wHandle','baseFlare','baseW','baseLen','holeDia','fHoleDia','fHoles'])keep[k]=P[k];
   P=Object.assign({},DEF,keep,PRESETS[name]||{},{preset:name});VW.user=false;paramChanged(true);syncAll();
   toast('Loaded '+document.querySelector(`#preset option[value=${name}]`).textContent.toLowerCase());}
 
@@ -869,9 +907,11 @@ document.getElementById('resetBtn').onclick=resetDims;
 document.getElementById('preset').onchange=e=>applyPreset(e.target.value);
 document.getElementById('units').onchange=e=>{P.units=e.target.value;buildPanel();syncAll();draw();readouts();persist();};
 document.getElementById('speed').oninput=e=>{P.speed=+e.target.value;persist();};
-document.getElementById('handleBtn').onclick=()=>{P.handleAt=P.handleAt==='none'?'elbow':'none';paramChanged(true);syncAll();};
-document.getElementById('traceBtn').onclick=()=>{const on=!(P.gripPath||P.trace);P.gripPath=P.trace=on;TRACE=[];paramChanged(false);syncAll();};
-document.getElementById('featherBtn').onclick=()=>{P.showFeathers=!P.showFeathers;paramChanged(false);syncAll();};
+for(const b of document.querySelectorAll('#viewbar button[data-k]'))b.onclick=()=>{const k=b.dataset.k;
+  if(k==='handle'){P.handleAt=P.handleAt==='none'?P.handleWhere:'none';VW.user=false;}else P[k]=!P[k];
+  if(k==='trace')TRACE=[];if(k==='bothWings')VW.user=false;paramChanged(k==='handle'||k==='bothWings');syncAll();};
+document.getElementById('undoBtn').onclick=undo;
+document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&!e.shiftKey&&(e.key==='z'||e.key==='Z')){const a=document.activeElement;if(a&&a.tagName==='INPUT'&&a.type==='number')return;e.preventDefault();undo();}});
 let playing=false,animT=0,animBase=0,lastTs=0;const playBtn=document.getElementById('play');
 const animSpan=()=>P.animMode==='flap'?[0,0.5]:P.animMode==='tuck'?[0.5,1]:[0,1];
 function startAnim(){TRACE=[];animBase=P.shoulder;lastTs=0;
@@ -949,7 +989,7 @@ function partList(){
     if(P.fHoles&&GU&&!P.guidePrim)fh.push(...priX.map(x=>hole(x+14,0,'',fd)).filter(clear(hs)));
     const pn=fh.length?(GU&&!P.guidePrim?priX.length+' primaries, 2 bolts each (quill + lock hole)':fh.length+' primary mounts'):'';
     parts.push({name:'Hand bar',holes:hs.concat(fh),w:P.wHand,links:[[0,1]],ends:[Math.min(0,P.kAlong),P.hand],note:(P.wristFixed?`fixed at ${P.wristFix.toFixed(0)}° to the ulna by two bolts`:'pivots on the wrist bolt; radius pins to it')+(pn?' · '+pn:'')});}
-  if(P.handleAt==='elbow')parts.push({name:'Handle bar',holes:[hole(0,0,'elbow'),hole(P.handleLen,0,'grip')],w:P.wHandle,links:[[0,1]],ends:[0,P.handleLen],note:'pivots freely on the elbow bolt (add a washer/spacer so it clears the ulna)'});
+  if(P.handleAt==='elbow'||P.handleAt==='wrist'){const wr=P.handleAt==='wrist';parts.push({name:'Handle bar',holes:[hole(0,0,wr?'wrist':'elbow'),hole(P.handleLen,0,'grip')],w:P.wHandle,links:[[0,1]],ends:[0,P.handleLen],note:wr?'pivots freely on the wrist bolt at the end of the ulna (add a washer/spacer so it clears the hand)':'pivots freely on the elbow bolt (add a washer/spacer so it clears the ulna)'});}
   if(GU){const gi=guideInfo(),raw=rawFeathers(poseAt(0)),groups=P.guideMode==='pins'?[['s','p']]:[['s'],['p']];
     for(const ks of groups){const idx=[];GD.forEach((sv,i)=>{if(sv!=null&&ks.includes(raw[i].kind))idx.push(i);});
       const pins=idx.map(i=>GD[i]);if(!pins.length)continue;
@@ -1018,7 +1058,7 @@ function assemblySVG(){
 let tt;function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2200);}
 
 /* ---------- boot ---------- */
-lastBW=P.barWidth;buildPanel();derive();clampInput();computeGuides();buildChart();syncAll();
+lastBW=P.barWidth;buildPanel();derive();clampInput();computeGuides();buildChart();syncAll();lastSnap=snap();updUndo();
 new ResizeObserver(()=>{resize();drawChart();}).observe(document.getElementById('stage'));
 new ResizeObserver(()=>drawChart()).observe(ch);
 resize();drawChart();readouts();
