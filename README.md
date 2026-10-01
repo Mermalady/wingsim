@@ -1,6 +1,6 @@
 # Cosplay Wing Simulator
 
-Design, simulate, and build costume wings with 4-bar linkages.
+Design, simulate, and build costume wings with 4-bar linkages, export to SVG files for fabrication.
 
 **Live app:** https://mermalady.github.io/wingsim/
 
