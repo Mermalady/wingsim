@@ -185,8 +185,8 @@ const DEF={
   refShoulder:-47.5, refElbow:90, refWrist:100, tRefElbow:20, tRefWrist:20,
   shoulder:-8, elbow:20,
   elbowMin:12, elbowMax:120, pivOpen:-8, pivFold:-105.5,
-  handleAt:'elbow', handleWhere:'elbow', handleLen:450, handleAng:-100, handleDir:-95, layout:'back', handType:'single', elbowPlate:false, sharedPlate:false, pivotSpread:260, wristFixed:false, wristFix:25, guideMode:'tabs', gB:40, guidePrim:true,
-  showFeathers:true, primaries:10, secondaries:13, pIn:300, pOut:430, sLen:260, tuck:0.8, tertials:4, tLen:200, pCov:7, pcLen:150, mCov:7, mcLen:95, pcOn:false, mcOn:false, liftOn:false, liftAng:0, liftHx:-30, liftHy:40,
+  handleAt:'elbow', handleWhere:'elbow', handleLen:450, handleAng:-100, handleDir:-95, layout:'back', handType:'single', elbowPlate:false, sharedPlate:true, pivotSpread:260, wristFixed:false, wristFix:25, guideMode:'tabs', gB:40, guidePrim:true,
+  showFeathers:true, primaries:10, secondaries:13, pIn:300, pOut:430, sLen:260, tuck:0.8, tertials:4, tLen:200, pCov:7, pcLen:150, mCov:7, mcLen:95, pcOn:false, mcOn:false, liftOn:true, liftAng:30, liftHx:-30, liftHy:40,
   guides:false, gS:114.5, aS:15, bS:18, gP:60.5, aP:76, bP:224,
   ghosts:false, trace:false, labels:true, pinLabels:true, arcs:true, gripPath:false, showHoles:true, bothWings:false, plateRaise:0, figH:1727, figShoulder:410,
   barWidth:19.05, wCor:19.05, wClav:19.05, wUlna:19.05, wRad:19.05, wHand:19.05, wHandle:19.05, baseFlare:false, baseW:38, baseLen:60, holeDia:6.4, fHoles:true, fHoleDia:3.2,
@@ -198,9 +198,10 @@ const PRESETS={
   swan:{humerus:380,forearm:430,hand:250,primaries:11,secondaries:18,pIn:280,pOut:380,sLen:260},
   swift:{humerus:130,forearm:190,hand:340,primaries:10,secondaries:8,pIn:260,pOut:440,sLen:130,hSet:45,kAlong:-45}
 };
-const STORE='wingsim-v6';
+const STORE='wingsim-v7';
 let P=Object.assign({},DEF);
-try{const s=localStorage.getItem(STORE); if(s){const o=JSON.parse(s);for(const k in DEF)if(k in o)P[k]=o[k];}}catch(e){}
+try{let s=localStorage.getItem(STORE),old=false;if(!s){s=localStorage.getItem('wingsim-v6');old=!!s;}
+  if(s){const o=JSON.parse(s);for(const k in DEF)if(k in o)P[k]=o[k];if(old){P.sharedPlate=true;P.liftOn=true;P.liftAng=30;}}}catch(e){}
 if(P.handleAt==='angled')P.handleAt='elbow';if(P.handleWhere!=='wrist')P.handleWhere='elbow';if(P.handleAt!=='none')P.handleAt=P.handleWhere;P.kSpace=0;
 const persist=()=>{try{localStorage.setItem(STORE,JSON.stringify(P))}catch(e){}noteChange();};
 // Undo: every settled change (a slider drag counts as one) pushes the previous settings onto a stack.
@@ -899,7 +900,7 @@ function paramChanged(refit){derive();QC=null;clampInput();computeGuides();build
 const VIEW_KEYS=['units','speed','showFeathers','handleAt','handleWhere','pinLabels','handleDir','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn'];
 function resetDims(){const keep={};for(const k of VIEW_KEYS)keep[k]=P[k];P=Object.assign({},DEF,PRESETS[P.preset]||{},keep,{preset:P.preset});
   TRACE=[];paramChanged(false);syncAll();toast('Dimensions reset to '+document.querySelector(`#preset option[value=${P.preset}]`).textContent.toLowerCase());}
-function applyPreset(name){const keep={};for(const k of['units','animMode','speed','mode','handleAt','handleWhere','pinLabels','handleLen','handleDir','showFeathers','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','sharedPlate','pcOn','mcOn','pivotSpread','barWidth','wCor','wClav','wUlna','wRad','wHand','wHandle','baseFlare','baseW','baseLen','holeDia','fHoleDia','fHoles'])keep[k]=P[k];
+function applyPreset(name){const keep={};for(const k of['units','animMode','speed','mode','handleAt','handleWhere','pinLabels','handleLen','handleDir','showFeathers','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn','pivotSpread','barWidth','wCor','wClav','wUlna','wRad','wHand','wHandle','baseFlare','baseW','baseLen','holeDia','fHoleDia','fHoles'])keep[k]=P[k];
   P=Object.assign({},DEF,keep,PRESETS[name]||{},{preset:name});VW.user=false;paramChanged(true);syncAll();
   toast('Loaded '+document.querySelector(`#preset option[value=${name}]`).textContent.toLowerCase());}
 
