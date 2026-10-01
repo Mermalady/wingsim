@@ -2,7 +2,7 @@
 
 Design, simulate, and build costume wings with 4-bar linkages, export to SVG files for fabrication.
 
-**Live app:** https://mermalady.github.io/wingsim/
+**Live app:** https://creaturebones.com
 
 A 2D, browser-based simulator for articulated bird-style costume wings. Adjust the bones, joints and linkages, watch the wing fold and unfold, then export true-scale cut templates for building.
 
@@ -31,7 +31,7 @@ A 2D, browser-based simulator for articulated bird-style costume wings. Adjust t
 
 ## Using it
 
-1. Open the [live app](https://mermalady.github.io/wingsim/), or download `index.html` and open it in any browser. It works offline and needs no install.
+1. Open the [live app](https://creaturebones.com), or download `index.html` and open it in any browser. It works offline and needs no install.
 2. Pick a preset, then adjust these panel sections:
    - **Overall size**
    - **Bone dimensions**
