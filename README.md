@@ -47,7 +47,7 @@ A 2D, browser-based simulator for articulated bird-style costume wings. Adjust t
    - the width of each bar, or an overall width;
    - widened bases on the clavicle and coracoid bars;
    - pivot and feather hole sizes.
-5. Click **Export part templates (SVG)**.
+5. Click **Export part templates (SVG)** for the skeleton parts, and **Export feather templates (SVG)** for every feather as its own cut piece (quill hole at the base, rachis engraved, labelled P1, S1, T1 and so on).
 
 Settings save automatically in your browser. **Undo** (or ⌘/Ctrl+Z) steps back one change at a time; **Reset dimensions** goes back to the preset while keeping your view options.
 

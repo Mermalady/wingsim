@@ -879,7 +879,7 @@ function buildPanel(){
         nm.onchange=()=>{go(fromU(+nm.value));rg.value=openSpan();};
         CTRL.__span={it:{type:'span'},nm,rg};continue;}
       if(it.type==='buttons'){const b=document.createElement('div');b.className='btns';
-        b.innerHTML=`<button class="primary" id="expTpl">Export part templates (SVG)</button><button id="expAsm">Export assembly drawing (SVG)</button><button id="expJson">Save parameters</button><button id="impJson">Load parameters</button><button id="reset">Reset to preset</button>`;
+        b.innerHTML=`<button class="primary" id="expTpl">Export part templates (SVG)</button><button id="expFea">Export feather templates (SVG)</button><button id="expAsm">Export assembly drawing (SVG)</button><button id="expJson">Save parameters</button><button id="impJson">Load parameters</button><button id="reset">Reset to preset</button>`;
         box.appendChild(b);continue;}
       const r=document.createElement('div');r.className='row';const id='c_'+it.key;
       const ul=it.u==='len'?` (${uName()})`:it.u==='deg'?' (°)':'';
@@ -892,6 +892,7 @@ function buildPanel(){
     panel.appendChild(d);
   });
   document.getElementById('expTpl').onclick=()=>saveFile(`cosplay-wing-templates-${stamp()}.svg`,templateSVG());
+  document.getElementById('expFea').onclick=()=>{const svg=featherTemplateSVG();if(!svg){toast('No feathers to export: set some feather counts first.');return;}saveFile(`cosplay-wing-feathers-${stamp()}.svg`,svg);};
   document.getElementById('expAsm').onclick=()=>saveFile(`cosplay-wing-assembly-${stamp()}.svg`,assemblySVG());
   document.getElementById('expJson').onclick=()=>saveFile(`cosplay-wing-params-${stamp()}.json`,JSON.stringify(exportParams(),null,2));
   document.getElementById('impJson').onclick=()=>document.getElementById('loadFile').click();
@@ -1065,6 +1066,43 @@ function templateSVG(){
   const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Cosplay Wing Simulator part templates · ${tied()?'tied':'pivoting'} humerus</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · blue dashed = centreline · black = engrave. Pivot Ø ${fmtL(P.holeDia,dp)} · overall bar width ${fmtL(P.barWidth,dp)} (see each part) · ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Quantities cover a pair of wings. Hardware: one bolt size for every pivot; shoulder bolts or Chicago screws with nylon washers; bolt rigid joints (two bolts) tight, pivots snug.</text>`;
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${n2(Wd)}mm" height="${n2(Hd)}mm" viewBox="0 0 ${n2(Wd)} ${n2(Hd)}">\n${head}\n${out.join('\n')}\n</svg>\n`;
 }
+// Feather cut templates: each feather laid flat at true scale (quill hole at the base, a stem around it so the
+// hole has material, rachis engraved). Quantities are for a pair of wings; flip one of each for the left wing.
+const FEATHER_SHAPE={cal:{p:0.1,s:0.11,t:0.12,rc:0.14,mc:0.15},ri:{p:0.72,s:0.6,t:0.54,rc:0.6,mc:0.55},tipR:{p:0.32,s:0.3,t:0.42,rc:0.42,mc:0.48}};
+function featherCut(f){const L=f.L,W=f.w,k=f.kind,cal=FEATHER_SHAPE.cal[k],ri=FEATHER_SHAPE.ri[k],tipR=FEATHER_SHAPE.tipR[k];
+  const emarg=k==='p'?clamp((f.s-0.45)/0.55,0,1):0,r=Math.max(P.fHoleDia/2+3,4),stemEnd=cal*L+2*r;
+  const prof=(t,outer)=>{if(t<=cal)return 0;const u=(t-cal)/(1-cal);let w=Math.min(1,u/0.14);w=w*w*(3-2*w);
+    if(u>1-tipR){const v=(u-(1-tipR))/tipR;w*=Math.sqrt(Math.max(0,1-v*v));}
+    if(emarg&&u>0.55){const v=clamp((u-0.55)/0.2,0,1);w*=1-(outer?0.35:0.45)*emarg*v*v*(3-2*v);}return w;};
+  const N=120,inner=[],outer=[];let sI=true,sO=true;
+  for(let i=0;i<=N;i++){const t=i/N,x=t*L,bow=Math.sin(Math.PI*t)*W*0.04;let pi=W*ri*prof(t,false),po=W*(1-ri)*prof(t,true);
+    // the stem keeps at least the hole's margin until each vane grows wider than it, so the outline never pinches
+    if(sI){if(x>stemEnd&&pi>=r)sI=false;else pi=Math.max(pi,r);}
+    if(sO){if(x>stemEnd&&po>=r)sO=false;else po=Math.max(po,r);}
+    outer.push(V(x,po+bow));inner.push(V(x,-pi+bow));}
+  const cap=[];for(let i=1;i<20;i++){const a=-Math.PI/2-i/20*Math.PI;cap.push(V(r*Math.cos(a),r*Math.sin(a)));}
+  return {poly:outer.concat(inner.reverse(),cap),rachis:[cal*L,0.97*L],r};}
+function featherTemplateSVG(){
+  const fs=rawFeathers(poseAt(0));if(!fs.length)return null;
+  const PLUR={p:'primaries',s:'secondaries',t:'tertials',rc:'primary coverts',mc:'marginal coverts'},NAMES={p:'Primary',s:'Secondary',t:'Tertial',rc:'Primary covert',mc:'Marginal covert'},TAG={p:'P',s:'S',t:'T',rc:'PC',mc:'MC'},ORDER=['p','s','t','rc','mc'];
+  const items=[];for(const k of ORDER){const g=fs.filter(f=>f.kind===k).sort((a,b)=>a.s-b.s);g.forEach((f,i)=>items.push({f,id:TAG[k]+(i+1),name:NAMES[k]}));}
+  const M=15,CUT='#ff0000',ENG='#000000',F='font-family="Helvetica,Arial,sans-serif"',dp=P.units==='in'?2:1,gap=8;
+  const rowW=Math.max(...items.map(it=>it.f.L))+20;let out=[],y=M+30,row=[],rowH=0,x=M,maxW=0;
+  const place=()=>{if(!row.length)return;for(const it of row){const {poly,rachis}=it.c;let y0=Infinity;for(const p of poly)y0=Math.min(y0,-p.y);
+      const dx=it.x-0+it.c.r,dy=y-y0;out.push(`<g id="feather-${it.id}">`,`<path d="${svgPoly(poly,dx,dy)}" fill="none" stroke="${CUT}" stroke-width="0.1"/>`,
+        `<circle cx="${n2(dx)}" cy="${n2(dy)}" r="${n2(P.fHoleDia/2)}" fill="none" stroke="${CUT}" stroke-width="0.1"/>`,
+        `<line x1="${n2(rachis[0]+dx)}" y1="${n2(dy-Math.sin(Math.PI*rachis[0]/it.f.L)*it.f.w*0.04)}" x2="${n2(rachis[1]+dx)}" y2="${n2(dy-Math.sin(Math.PI*0.97)*it.f.w*0.04)}" stroke="${ENG}" stroke-width="0.2"/>`,
+        `<text x="${n2(dx+it.f.L*0.3)}" y="${n2(dy+it.h+5)}" ${F} font-size="3.6" fill="${ENG}"><tspan font-weight="bold">${it.id}</tspan> ${esc(it.name)} ×2 · ${fmtL(it.f.L,dp)}</text>`,'</g>');}
+    y+=rowH+gap+6;row=[];rowH=0;x=M;};
+  for(const it of items){it.c=featherCut(it.f);let t=Infinity,b=-Infinity;for(const p of it.c.poly){t=Math.min(t,-p.y);b=Math.max(b,-p.y);}it.top=t;it.h=b;const w=it.f.L+it.c.r;
+    if(x+w>M+rowW&&row.length)place();it.x=x;row.push(it);x+=w+gap;rowH=Math.max(rowH,b-t);maxW=Math.max(maxW,x-M);}
+  place();
+  const counts=ORDER.map(k=>{const n=fs.filter(f=>f.kind===k).length;return n?`${n} ${n>1?PLUR[k]:NAMES[k].toLowerCase()}`:null;}).filter(Boolean).join(', ');
+  const sy=y+2;out.push(`<g id="scale-check"><rect x="${M}" y="${sy}" width="100" height="6" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M}" y="${sy+11}" ${F} font-size="3.4">10 cm: measure to confirm scale</text><rect x="${M+115}" y="${sy}" width="25.4" height="25.4" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M+115}" y="${sy+30}" ${F} font-size="3.4">1 in square</text></g>`);
+  const Wd=Math.max(rowW+M*2,190),Hd=sy+36;
+  const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Cosplay Wing Simulator feather templates</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · black = engrave (rachis). Quill hole Ø ${fmtL(P.fHoleDia,P.units==='in'?3:2)} at the base of each feather. ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Per wing: ${esc(counts)}. Quantities cover a pair of wings: cut two of each and flip one for the left wing. P1 = innermost primary, S1 = secondary nearest the elbow.</text>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${n2(Wd)}mm" height="${n2(Hd)}mm" viewBox="0 0 ${n2(Wd)} ${n2(Hd)}">\n${head}\n${out.join('\n')}\n</svg>\n`;
+}
 function assemblySVG(){
   const poses=[['Open',poseAt(0)],['Mid-fold',poseAt(0.5)],['Folded',poseAt(1)]];
   const M=20,F='font-family="Helvetica,Arial,sans-serif"';let y=M+22,out=[],maxW=0;
@@ -1095,7 +1133,7 @@ new ResizeObserver(()=>{resize();drawChart();}).observe(document.getElementById(
 new ResizeObserver(()=>drawChart()).observe(ch);
 resize();drawChart();readouts();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(rethemed);
-window.__wingsim={VW:()=>({...VW}),pose,P:()=>P,G,FR,poseAt,templateSVG,assemblySVG,shapes,rawFeathers,set:(o)=>{Object.assign(P,o);paramChanged(true);syncAll();}};
+window.__wingsim={VW:()=>({...VW}),pose,P:()=>P,G,FR,poseAt,templateSVG,featherTemplateSVG,assemblySVG,shapes,rawFeathers,set:(o)=>{Object.assign(P,o);paramChanged(true);syncAll();}};
 })();
 
 </script>
