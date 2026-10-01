@@ -743,7 +743,6 @@ function readouts(){
 const GROUPS=[
   {title:'Overall size',open:true,items:[
     {type:'span'},
-    {key:'pivotSpread',label:'Back width',hint:'left ↔ right shoulder pivots',min:80,max:500,step:1,u:'len'},
     {type:'explain',text:'Drag the slider or type the tip-to-tip wingspan you want with both wings fully open (including feathers). Every bone, pin position, feather and the handle scale together, so the mechanism moves exactly the same; bar width, hole sizes and back width stay as they are.'}
   ]},
   {title:'Bone dimensions',items:[
@@ -778,7 +777,11 @@ const GROUPS=[
     {key:'handleLen',label:'Handle length',hint:'pivot → grip',min:20,max:900,step:1,u:'len',needs:'handle'},
     {key:'handleDir',label:'Handle hold angle',hint:'−90 = straight down',min:-180,max:180,step:1,u:'deg',needs:'handle'}
   ]},
-  {title:'Lift hinge',open:true,items:[
+  {title:'Mounts',open:true,items:[
+    {type:'explain',text:'The backplate carries both shoulder pivots and straps to the harness. Back width sets how far apart the left and right wings sit; backplate height places it on the figure.'},
+    {key:'pivotSpread',label:'Back width',hint:'left ↔ right shoulder pivots',min:80,max:500,step:1,u:'len'},
+    {key:'plateRaise',label:'Backplate height',hint:'0 = top at shoulders, − lowers',min:-400,max:200,step:1,u:'len'},
+    {type:'check',key:'sharedPlate',label:'One-piece backplate for both wings'},
     {type:'check',key:'liftOn',label:'Lift hinge (raise the whole wing)'},
     {key:'liftAng',label:'Lift angle',hint:'+ raises the wing',min:-30,max:100,step:0.5,u:'deg',needs:'lift'},
     {key:'liftHx',label:'Hinge position',hint:'− toward the spine',min:-300,max:100,step:1,u:'len',needs:'lift'},
@@ -805,11 +808,9 @@ const GROUPS=[
   {title:'Figure',items:[
     {type:'explain',text:'The human figure used for scale. Turn on "Both wings + figure" in the view bar to see it.'},
     {key:'figH',label:'Figure height',hint:'5′8″ = 68 in',min:1200,max:2150,step:1,u:'len'},
-    {key:'figShoulder',label:'Figure shoulder width',hint:'outside of shoulders',min:280,max:600,step:1,u:'len'},
-    {key:'plateRaise',label:'Backplate height',hint:'0 = top at shoulders, − lowers',min:-400,max:200,step:1,u:'len'}
+    {key:'figShoulder',label:'Figure shoulder width',hint:'outside of shoulders',min:280,max:600,step:1,u:'len'}
   ]},
   {title:'Build & export',open:true,items:[
-    {type:'check',key:'sharedPlate',label:'One-piece backplate for both wings'},
     {key:'barWidth',label:'Overall bar width',hint:'sets every bar at once',min:6,max:80,step:0.05,u:'len'},
     {key:'wCor',label:'Coracoid bar',hint:'width',min:6,max:80,step:0.05,u:'len'},
     {key:'wClav',label:'Clavicle bar',hint:'width',min:6,max:80,step:0.05,u:'len'},
@@ -831,10 +832,10 @@ const panel=document.getElementById('panel');const CTRL={};const EXPL=[];
 function dispVal(it,v){if(it.u==='len')return +toU(v).toFixed(P.units==='in'?3:2);return +(+v).toFixed(2);}
 function buildPanel(){
   panel.innerHTML='';for(const k in CTRL)delete CTRL[k];EXPL.length=0;
-  let openState={};try{openState=JSON.parse(localStorage.getItem('wingsim-open4')||'{}')}catch(e){}
+  let openState={};try{openState=JSON.parse(localStorage.getItem('wingsim-open5')||'{}')}catch(e){}
   GROUPS.forEach((g,gi)=>{
     const d=document.createElement('details');d.open=openState[gi]??!!g.open;
-    d.addEventListener('toggle',()=>{openState[gi]=d.open;try{localStorage.setItem('wingsim-open4',JSON.stringify(openState))}catch(e){}});
+    d.addEventListener('toggle',()=>{openState[gi]=d.open;try{localStorage.setItem('wingsim-open5',JSON.stringify(openState))}catch(e){}});
     d.innerHTML=`<summary>${g.title}</summary>`;const box=document.createElement('div');box.className='grp';d.appendChild(box);
     for(const it of g.items){
       if(it.type==='seg'){const s=document.createElement('div');s.className='seg';s.setAttribute('role','group');

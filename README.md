@@ -34,7 +34,7 @@ A 2D, browser-based simulator for articulated bird-style costume wings. Adjust t
    - **Kinematics** (pin positions, wrist pin, radius–ulna spacing)
    - **Fold range**
    - **Handle**
-   - **Lift hinge**
+   - **Mounts** (backplate and lift hinge)
    - **Feathers**
    - **Figure**
    
