@@ -203,7 +203,7 @@ const DEF={
   showFeathers:true, primaries:10, secondaries:13, pIn:300, pOut:430, sLen:260, tuck:0.8, tertials:4, tLen:200, pCov:7, pcLen:150, mCov:7, mcLen:95, pcOn:false, mcOn:false, liftOn:true, liftAng:30, liftHx:-30, liftHy:40,
   guides:false, gS:114.5, aS:15, bS:18, gP:60.5, aP:76, bP:224,
   ghosts:false, trace:false, labels:true, pinLabels:true, arcs:true, gripPath:false, showHoles:true, bothWings:false, plateRaise:0, figH:1727, figShoulder:410,
-  barWidth:19.05, wCor:19.05, wClav:19.05, wUlna:19.05, wRad:19.05, wHand:19.05, wHandle:19.05, baseFlare:false, baseW:38, baseLen:60, holeDia:6.4, fHoles:true, fHoleDia:3.2,
+  barWidth:19.05, wCor:19.05, wClav:19.05, wUlna:19.05, wRad:19.05, wHand:19.05, wHandle:19.05, baseFlare:false, baseW:38, baseLen:60, holeDia:6.4, fHoles:true, fHoleDia:3.2, spineOn:true, spineW:10, spineTip:0.45, spineLen:0.85, spineHole:2.5, spineGap:60,
   units:'in', animMode:'fold', speed:0.6, preset:'raptor', clavLen:0, ruSpace:0
 };
 const PRESETS={
@@ -579,6 +579,8 @@ function drawFeathers(p){
     // rachis + a few barb hints on the inner vane
     const d=unit(sub(f.tip,f.base)),n=V(-d.y,d.x),b=toS(f.base),t=toS(at(f.base,ang(d),f.L*0.97));
     ctx.lineWidth=1.1;ctx.beginPath();ctx.moveTo(b.x,b.y);ctx.lineTo(t.x,t.y);ctx.stroke();
+    if(P.spineOn){const sp=featherSpine(f);ctx.beginPath();sp.poly.forEach((q,i)=>{const s=toS(add(f.base,add(mul(d,q.x),mul(n,q.y))));i?ctx.lineTo(s.x,s.y):ctx.moveTo(s.x,s.y);});ctx.closePath();
+      ctx.fillStyle=TH['feather-edge'];ctx.globalAlpha=0.7;ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle=TH['feather-edge'];}
     ctx.lineWidth=0.5;ctx.globalAlpha=0.6;ctx.beginPath();
     for(let k=1;k<=5;k++){const u=0.22+k*0.12,c=add(f.base,mul(d,u*f.L)),e=add(c,add(mul(n,-f.w*0.45),mul(d,f.w*0.35)));const A=toS(c),B=toS(e);ctx.moveTo(A.x,A.y);ctx.lineTo(B.x,B.y);}
     ctx.stroke();ctx.globalAlpha=1;}
@@ -848,6 +850,13 @@ const GROUPS=[
     {key:'holeDia',label:'Pivot hole Ø',hint:'¼″ bolt ≈ 0.64 cm',min:1,max:20,step:0.05,u:'len'},
     {type:'check',key:'fHoles',label:'Drill feather mount holes'},
     {key:'fHoleDia',label:'Feather hole Ø',min:1,max:10,step:0.05,u:'len'},
+    {type:'check',key:'spineOn',label:'Separate feather spines'},
+    {key:'spineW',label:'Spine width',hint:'at the quill hole',min:4,max:40,step:0.5,u:'len',needs:'spine'},
+    {key:'spineTip',label:'Spine tip width',hint:'× base width',min:0.2,max:1,step:0.05,u:'ratio',needs:'spine'},
+    {key:'spineLen',label:'Spine length',hint:'× feather length',min:0.3,max:0.97,step:0.01,u:'ratio',needs:'spine'},
+    {key:'spineHole',label:'Rivet hole Ø',hint:'joins vane to spine',min:1,max:6,step:0.05,u:'len',needs:'spine'},
+    {key:'spineGap',label:'Rivet spacing',min:20,max:200,step:1,u:'len',needs:'spine'},
+    {type:'explain',text:'With separate spines, each feather is two parts: a stiff spine (plastic, wood or carbon strip) that carries the quill hole and bolts to the bone, and a lighter vane (foam, fabric, EVA) riveted, stitched or glued onto it through matching holes.'},
     {type:'buttons'},
     {type:'explain',text:'Templates export at true scale. Red = cut, blue dashed = centreline, black = engrave. Cut two of every part and flip one set over for the left wing.'}
   ]}
@@ -910,7 +919,7 @@ function syncAll(){
     if(it.type==='span'){const sp=openSpan();if(document.activeElement!==c.nm)c.nm.value=+toU(sp).toFixed(P.units==='in'?1:0);if(document.activeElement!==c.rg)c.rg.value=sp;continue;}
     if(c.c){c.c.checked=!!P[k];continue;}
     if(it.type==='seg'){for(const b of c.el.children)b.setAttribute('aria-pressed',String(b.dataset.v===P[k]));continue;}
-    c.row.hidden=!visible(it)||(it.needs==='handle'&&P.handleAt==='none')||(it.needs==='angled'&&P.handleAt!=='angled')||(it.needs==='guides'&&!P.guides)||(it.needs==='noguides'&&P.guides)||(it.needs==='both'&&!P.bothWings)||(it.needs==='pc'&&!P.pcOn)||(it.needs==='lift'&&!P.liftOn)||(it.needs==='flare'&&!P.baseFlare)||(it.needs==='mc'&&!P.mcOn)||(it.needs==='shared'&&!P.sharedPlate)||(it.needs==='split'&&!splitPlate())||(it.needs==='wristfix'&&!P.wristFixed)||(it.needs==='pins'&&P.guideMode!=='pins')||(it.needs2==='tabs'&&P.guideMode!=='tabs')||(it.needs2==='radius'&&P.wristFixed);
+    c.row.hidden=!visible(it)||(it.needs==='handle'&&P.handleAt==='none')||(it.needs==='angled'&&P.handleAt!=='angled')||(it.needs==='guides'&&!P.guides)||(it.needs==='noguides'&&P.guides)||(it.needs==='both'&&!P.bothWings)||(it.needs==='pc'&&!P.pcOn)||(it.needs==='lift'&&!P.liftOn)||(it.needs==='flare'&&!P.baseFlare)||(it.needs==='mc'&&!P.mcOn)||(it.needs==='shared'&&!P.sharedPlate)||(it.needs==='split'&&!splitPlate())||(it.needs==='spine'&&!P.spineOn)||(it.needs==='wristfix'&&!P.wristFixed)||(it.needs==='pins'&&P.guideMode!=='pins')||(it.needs2==='tabs'&&P.guideMode!=='tabs')||(it.needs2==='radius'&&P.wristFixed);
     const ro=it.ro==='all'||it.ro===P.mode;c.rg.disabled=ro;c.nm.disabled=ro;c.row.classList.toggle('disabled',ro);
     if(document.activeElement!==c.rg)c.rg.value=P[k];if(document.activeElement!==c.nm)c.nm.value=dispVal(it,P[k]);}
   for(const e of EXPL)e.el.hidden=!visible(e.it)||(e.it.needs==='split'&&!splitPlate());updInfo();
@@ -927,7 +936,7 @@ function paramChanged(refit){derive();QC=null;clampInput();computeGuides();build
 const VIEW_KEYS=['units','speed','showFeathers','handleAt','handleWhere','pinLabels','handleDir','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn'];
 function resetDims(){const keep={};for(const k of VIEW_KEYS)keep[k]=P[k];P=Object.assign({},DEF,PRESETS[P.preset]||{},keep,{preset:P.preset});
   TRACE=[];paramChanged(false);syncAll();toast('Dimensions reset to '+document.querySelector(`#preset option[value=${P.preset}]`).textContent.toLowerCase());}
-function applyPreset(name){const keep={};for(const k of['units','animMode','speed','mode','handleAt','handleWhere','pinLabels','handleLen','handleDir','showFeathers','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn','pivotSpread','plateIn','plateUp','plateDown','plateEdge','barWidth','wCor','wClav','wUlna','wRad','wHand','wHandle','baseFlare','baseW','baseLen','holeDia','fHoleDia','fHoles'])keep[k]=P[k];
+function applyPreset(name){const keep={};for(const k of['units','animMode','speed','mode','handleAt','handleWhere','pinLabels','handleLen','handleDir','showFeathers','gripPath','trace','labels','arcs','showHoles','bothWings','plateRaise','figH','figShoulder','pcOn','mcOn','pivotSpread','plateIn','plateUp','plateDown','plateEdge','spineOn','spineW','spineTip','spineLen','spineHole','spineGap','barWidth','wCor','wClav','wUlna','wRad','wHand','wHandle','baseFlare','baseW','baseLen','holeDia','fHoleDia','fHoles'])keep[k]=P[k];
   P=Object.assign({},DEF,keep,PRESETS[name]||{},{preset:name});VW.user=false;paramChanged(true);syncAll();
   toast('Loaded '+document.querySelector(`#preset option[value=${name}]`).textContent.toLowerCase());}
 
@@ -1082,6 +1091,21 @@ function featherCut(f){const L=f.L,W=f.w,k=f.kind,cal=FEATHER_SHAPE.cal[k],ri=FE
     outer.push(V(x,po+bow));inner.push(V(x,-pi+bow));}
   const cap=[];for(let i=1;i<20;i++){const a=-Math.PI/2-i/20*Math.PI;cap.push(V(r*Math.cos(a),r*Math.sin(a)));}
   return {poly:outer.concat(inner.reverse(),cap),rachis:[cal*L,0.97*L],r};}
+// Spine: tapered strip along the rachis carrying the quill hole; rivet holes join the vane to it.
+function featherSpine(f){const L=f.L,W=f.w,cal=FEATHER_SHAPE.cal[f.kind],rb=Math.max(P.spineW/2,P.fHoleDia/2+2.5),ht=Math.max(rb*P.spineTip,P.spineHole/2+1.2),sL=Math.max(cal*L+3*rb,P.spineLen*L);
+  const bow=x=>Math.sin(Math.PI*x/L)*W*0.04,hw=x=>lerp(rb,ht,clamp(x/(sL-ht),0,1)),N=60,top=[],bot=[];
+  for(let i=0;i<=N;i++){const x=i/N*(sL-ht);top.push(V(x,bow(x)+hw(x)));bot.push(V(x,bow(x)-hw(x)));}
+  const tip=[];for(let i=1;i<16;i++){const a=Math.PI/2-i/16*Math.PI;tip.push(V(sL-ht+ht*Math.cos(a),bow(sL-ht)+ht*Math.sin(a)));}
+  const cap=[];for(let i=1;i<20;i++){const a=-Math.PI/2-i/20*Math.PI;cap.push(V(rb*Math.cos(a),rb*Math.sin(a)));}
+  const x0=Math.max(cal*L+2*rb,(cal+(1-cal)*0.1)*L),x1=sL-ht-4,n=Math.max(2,Math.round((x1-x0)/P.spineGap)+1),holes=[];
+  if(x1>x0)for(let i=0;i<n;i++){const x=lerp(x0,x1,n>1?i/(n-1):0);holes.push(V(x,bow(x)));}
+  return {poly:top.concat(tip,bot.reverse(),cap),holes,rb,len:sL};}
+function featherVane(f){const L=f.L,W=f.w,k=f.kind,cal=FEATHER_SHAPE.cal[k],ri=FEATHER_SHAPE.ri[k],tipR=FEATHER_SHAPE.tipR[k],emarg=k==='p'?clamp((f.s-0.45)/0.55,0,1):0;
+  const prof=(t,outer)=>{if(t<=cal)return 0;const u=(t-cal)/(1-cal);let w=Math.min(1,u/0.14);w=w*w*(3-2*w);
+    if(u>1-tipR){const v=(u-(1-tipR))/tipR;w*=Math.sqrt(Math.max(0,1-v*v));}
+    if(emarg&&u>0.55){const v=clamp((u-0.55)/0.2,0,1);w*=1-(outer?0.35:0.45)*emarg*v*v*(3-2*v);}return w;};
+  const N=120,inner=[],outer=[];for(let i=0;i<=N;i++){const t=cal+(1-cal)*i/N,x=t*L,bow=Math.sin(Math.PI*t)*W*0.04;outer.push(V(x,W*(1-ri)*prof(t,true)+bow));inner.push(V(x,-W*ri*prof(t,false)+bow));}
+  return {poly:outer.concat(inner.reverse().slice(1,-1)),rachis:[cal*L,0.97*L]};}
 function featherTemplateSVG(){
   const fs=rawFeathers(poseAt(0));if(!fs.length)return null;
   const PLUR={p:'primaries',s:'secondaries',t:'tertials',rc:'primary coverts',mc:'marginal coverts'},NAMES={p:'Primary',s:'Secondary',t:'Tertial',rc:'Primary covert',mc:'Marginal covert'},TAG={p:'P',s:'S',t:'T',rc:'PC',mc:'MC'},ORDER=['p','s','t','rc','mc'];
@@ -1090,17 +1114,23 @@ function featherTemplateSVG(){
   const rowW=Math.max(...items.map(it=>it.f.L))+20;let out=[],y=M+30,row=[],rowH=0,x=M,maxW=0;
   const place=()=>{if(!row.length)return;for(const it of row){const {poly,rachis}=it.c;let y0=Infinity;for(const p of poly)y0=Math.min(y0,-p.y);
       const dx=it.x-0+it.c.r,dy=y-y0;out.push(`<g id="feather-${it.id}">`,`<path d="${svgPoly(poly,dx,dy)}" fill="none" stroke="${CUT}" stroke-width="0.1"/>`,
-        `<circle cx="${n2(dx)}" cy="${n2(dy)}" r="${n2(P.fHoleDia/2)}" fill="none" stroke="${CUT}" stroke-width="0.1"/>`,
-        `<line x1="${n2(rachis[0]+dx)}" y1="${n2(dy-Math.sin(Math.PI*rachis[0]/it.f.L)*it.f.w*0.04)}" x2="${n2(rachis[1]+dx)}" y2="${n2(dy-Math.sin(Math.PI*0.97)*it.f.w*0.04)}" stroke="${ENG}" stroke-width="0.2"/>`,
-        `<text x="${n2(dx+it.f.L*0.3)}" y="${n2(dy+it.h+5)}" ${F} font-size="3.6" fill="${ENG}"><tspan font-weight="bold">${it.id}</tspan> ${esc(it.name)} ×2 · ${fmtL(it.f.L,dp)}</text>`,'</g>');}
+        ...(it.c.spine?[`<path d="${svgPoly(it.c.spine.poly,dx,dy+it.c.spOff)}" fill="none" stroke="${CUT}" stroke-width="0.1"/>`,
+          `<circle cx="${n2(dx)}" cy="${n2(dy+it.c.spOff)}" r="${n2(P.fHoleDia/2)}" fill="none" stroke="${CUT}" stroke-width="0.1"/>`,
+          ...it.c.spine.holes.flatMap(h=>[`<circle cx="${n2(h.x+dx)}" cy="${n2(-h.y+dy)}" r="${n2(P.spineHole/2)}" fill="none" stroke="${CUT}" stroke-width="0.1"/>`,`<circle cx="${n2(h.x+dx)}" cy="${n2(-h.y+dy+it.c.spOff)}" r="${n2(P.spineHole/2)}" fill="none" stroke="${CUT}" stroke-width="0.1"/>`])]
+          :[`<circle cx="${n2(dx)}" cy="${n2(dy)}" r="${n2(P.fHoleDia/2)}" fill="none" stroke="${CUT}" stroke-width="0.1"/>`]),
+        `<path d="M${Array.from({length:41},(_,i)=>{const x=lerp(rachis[0],rachis[1],i/40);return n2(x+dx)+','+n2(dy-Math.sin(Math.PI*x/it.f.L)*it.f.w*0.04);}).join(' L')}" fill="none" stroke="${ENG}" stroke-width="0.2"/>`,
+        `<text x="${n2(dx+it.f.L*0.3)}" y="${n2(dy+it.h+5)}" ${F} font-size="3.6" fill="${ENG}"><tspan font-weight="bold">${it.id}</tspan> ${esc(it.name)}${it.c.spine?' vane ×2 + spine ×2':' ×2'} · ${fmtL(it.f.L,dp)}${it.c.spine?' · spine '+fmtL(it.c.spine.len,dp):''}</text>`,'</g>');}
     y+=rowH+gap+6;row=[];rowH=0;x=M;};
-  for(const it of items){it.c=featherCut(it.f);let t=Infinity,b=-Infinity;for(const p of it.c.poly){t=Math.min(t,-p.y);b=Math.max(b,-p.y);}it.top=t;it.h=b;const w=it.f.L+it.c.r;
+  for(const it of items){if(P.spineOn){const v=featherVane(it.f),sp=featherSpine(it.f);let vb=-Infinity,st=Infinity;for(const p of v.poly)vb=Math.max(vb,-p.y);for(const p of sp.poly)st=Math.min(st,-p.y);
+      const off=vb-st+5;it.c={poly:v.poly,rachis:v.rachis,r:sp.rb,spine:sp,spOff:off};}else it.c=featherCut(it.f);
+    let t=Infinity,b=-Infinity;for(const p of it.c.poly){t=Math.min(t,-p.y);b=Math.max(b,-p.y);}
+    if(it.c.spine)for(const p of it.c.spine.poly)b=Math.max(b,-p.y+it.c.spOff);it.top=t;it.h=b;const w=it.f.L+it.c.r;
     if(x+w>M+rowW&&row.length)place();it.x=x;row.push(it);x+=w+gap;rowH=Math.max(rowH,b-t);maxW=Math.max(maxW,x-M);}
   place();
   const counts=ORDER.map(k=>{const n=fs.filter(f=>f.kind===k).length;return n?`${n} ${n>1?PLUR[k]:NAMES[k].toLowerCase()}`:null;}).filter(Boolean).join(', ');
   const sy=y+2;out.push(`<g id="scale-check"><rect x="${M}" y="${sy}" width="100" height="6" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M}" y="${sy+11}" ${F} font-size="3.4">10 cm: measure to confirm scale</text><rect x="${M+115}" y="${sy}" width="25.4" height="25.4" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M+115}" y="${sy+30}" ${F} font-size="3.4">1 in square</text></g>`);
   const Wd=Math.max(rowW+M*2,190),Hd=sy+36;
-  const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Cosplay Wing Simulator feather templates</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · black = engrave (rachis). Quill hole Ø ${fmtL(P.fHoleDia,P.units==='in'?3:2)} at the base of each feather. ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Per wing: ${esc(counts)}. Quantities cover a pair of wings: cut two of each and flip one for the left wing. P1 = innermost primary, S1 = secondary nearest the elbow.</text>`;
+  const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Cosplay Wing Simulator feather templates</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · black = engrave (rachis). ${P.spineOn?`Each feather = vane (top) + spine (below). Quill hole Ø ${fmtL(P.fHoleDia,P.units==='in'?3:2)} in the spine; rivet holes Ø ${fmtL(P.spineHole,P.units==='in'?3:2)} line up between vane and spine.`:`Quill hole Ø ${fmtL(P.fHoleDia,P.units==='in'?3:2)} at the base of each feather.`} ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Per wing: ${esc(counts)}. Quantities cover a pair of wings: cut two of each and flip one for the left wing. P1 = innermost primary, S1 = secondary nearest the elbow.</text>`;
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${n2(Wd)}mm" height="${n2(Hd)}mm" viewBox="0 0 ${n2(Wd)} ${n2(Hd)}">\n${head}\n${out.join('\n')}\n</svg>\n`;
 }
 function assemblySVG(){
