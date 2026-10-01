@@ -98,6 +98,9 @@ input[type=range]{width:100%;accent-color:var(--link)}
   .sub{display:none}
   .hint{display:none}
 }
+.tlwrap{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
+.tlwrap input{width:180px}
+@media (max-width:860px){.tlwrap input{width:130px}}
 .viewbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
 .viewbar .vlabel{font-family:var(--font-display);font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-right:4px}
 .viewbar button{font-size:12px;padding:3px 10px;border-radius:99px;background:transparent;color:var(--muted)}
@@ -113,15 +116,26 @@ button:disabled{opacity:.45;cursor:default}
     <div class="brand"><span class="logo">Cosplay Wing Simulator</span><span class="sub">Design, simulate, and build costume wings with 4-bar linkages</span></div>
     <div class="bar-controls">
       <select id="preset" aria-label="Wing preset">
-        <option value="raptor">Raptor proportions</option>
-        <option value="corvid">Corvid proportions</option>
-        <option value="swan">Swan proportions (long arm)</option>
-        <option value="swift">Swift proportions (long hand)</option>
+        <optgroup label="Birds">
+          <option value="raptor">Raptor (hawk)</option>
+          <option value="eagle">Eagle</option>
+          <option value="condor">Condor / vulture</option>
+          <option value="albatross">Albatross / gull (long arm)</option>
+          <option value="swan">Swan (long arm)</option>
+          <option value="corvid">Corvid (crow, raven)</option>
+          <option value="owl">Owl (short, broad)</option>
+          <option value="swift">Swift (long hand)</option>
+          <option value="hummingbird">Hummingbird (tiny arm, huge hand)</option>
+        </optgroup>
+        <optgroup label="Costume">
+          <option value="angel">Angel (oversized, flowing)</option>
+          <option value="fairy">Fairy (compact)</option>
+        </optgroup>
       </select>
       <button id="undoBtn" disabled title="Nothing to undo">↶ Undo</button>
       <button id="resetBtn" title="Reset all dimensions to the preset; view options stay">Reset dimensions</button>
       <button id="play" class="primary">Play</button>
-      <input id="speed" type="range" min="0.1" max="2" step="0.05" aria-label="Animation speed" style="width:90px">
+      <label class="tlwrap"><span>Open</span><input id="timeline" type="range" min="0" max="1" step="0.001" value="0" aria-label="Fold timeline: open to folded"><span>Folded</span></label>
       <select id="units" aria-label="Units"><option value="in">inches</option><option value="cm">centimeters</option></select>
     </div>
   </header>
@@ -193,10 +207,17 @@ const DEF={
   units:'in', animMode:'fold', speed:0.6, preset:'raptor', clavLen:0, ruSpace:0
 };
 const PRESETS={
-  raptor:{humerus:300,forearm:360,hand:280,primaries:10,secondaries:13,pIn:300,pOut:430,sLen:260},
-  corvid:{humerus:250,forearm:300,hand:260,primaries:10,secondaries:11,pIn:250,pOut:350,sLen:210},
-  swan:{humerus:380,forearm:430,hand:250,primaries:11,secondaries:18,pIn:280,pOut:380,sLen:260},
-  swift:{humerus:130,forearm:190,hand:340,primaries:10,secondaries:8,pIn:260,pOut:440,sLen:130,hSet:45,kAlong:-45}
+  raptor:{humerus:300,forearm:360,hand:280,primaries:10,secondaries:13,pIn:300,pOut:430,sLen:260,hSet:132.5,kAlong:-133.5,cAlong:-81.5,cAcross:60.0,hSpace:73.0},
+  eagle:{humerus:330,forearm:385,hand:300,primaries:10,secondaries:16,pIn:330,pOut:520,sLen:300,hSet:145.8,kAlong:-146.9,cAlong:-89.7,cAcross:66.0,hSpace:80.3,tLen:220},
+  condor:{humerus:380,forearm:420,hand:300,primaries:10,secondaries:20,pIn:380,pOut:620,sLen:330,hSet:167.8,kAlong:-169.1,cAlong:-103.2,cAcross:76.0,hSpace:92.5,tLen:260},
+  albatross:{humerus:400,forearm:450,hand:230,primaries:10,secondaries:24,pIn:230,pOut:330,sLen:170,hSet:176.7,kAlong:-178.0,cAlong:-108.7,cAcross:80.0,hSpace:97.3,tLen:160},
+  swan:{humerus:380,forearm:430,hand:250,primaries:11,secondaries:18,pIn:280,pOut:380,sLen:260,hSet:167.8,kAlong:-169.1,cAlong:-103.2,cAcross:76.0,hSpace:92.5},
+  corvid:{humerus:250,forearm:300,hand:260,primaries:10,secondaries:11,pIn:250,pOut:350,sLen:210,hSet:110.4,kAlong:-111.2,cAlong:-67.9,cAcross:50.0,hSpace:60.8},
+  owl:{humerus:230,forearm:270,hand:200,primaries:10,secondaries:14,pIn:250,pOut:310,sLen:250,hSet:101.6,kAlong:-102.4,cAlong:-62.5,cAcross:46.0,hSpace:56.0,tLen:190},
+  swift:{humerus:130,forearm:190,hand:340,primaries:10,secondaries:8,pIn:260,pOut:440,sLen:130,hSet:45,kAlong:-45},
+  hummingbird:{humerus:120,forearm:150,hand:380,primaries:10,secondaries:6,pIn:300,pOut:480,sLen:110,tertials:2,tLen:70,hSet:53.0,kAlong:-53.4,cAlong:-32.6,cAcross:24.0,hSpace:29.2},
+  angel:{humerus:400,forearm:460,hand:320,primaries:11,secondaries:20,pIn:400,pOut:680,sLen:400,tLen:320,hSet:176.7,kAlong:-178.0,cAlong:-108.7,cAcross:80.0,hSpace:97.3,tertials:5},
+  fairy:{humerus:170,forearm:200,hand:180,primaries:9,secondaries:9,pIn:170,pOut:250,sLen:140,tLen:110,hSet:75.1,kAlong:-75.6,cAlong:-46.2,cAcross:34.0,hSpace:41.4}
 };
 const STORE='wingsim-v7';
 let P=Object.assign({},DEF);
@@ -213,7 +234,7 @@ function updUndo(){const b=document.getElementById('undoBtn');if(b){b.disabled=!
 function undo(){if(histT)flushHist();if(!HIST.length){toast('Nothing to undo');return;}const s=HIST.pop(),sh=P.shoulder,el=P.elbow,sp=P.speed;
   P=Object.assign({},DEF,JSON.parse(s),{shoulder:sh,elbow:el,speed:sp});lastSnap=s;lastBW=P.barWidth;TRACE=[];buildPanel();paramChanged(false);syncAll();lastSnap=snap();updUndo();toast('Undid last change');}
 const tied=()=>P.mode==='tied';
-P.layout='back';P.handType='single';P.clavLen=P.clavLen||0;P.animMode='fold';P.mode='pivot';P.refElbow=90;P.guides=false;P.elbowPlate=false;P.wristFixed=false;P.guideMode='tabs';
+P.tuck=DEF.tuck;P.speed=DEF.speed;P.layout='back';P.handType='single';P.clavLen=P.clavLen||0;P.animMode='fold';P.mode='pivot';P.refElbow=90;P.guides=false;P.elbowPlate=false;P.wristFixed=false;P.guideMode='tabs';
 const mountName=()=>'backplate';
 
 /* ---------- units ---------- */
@@ -800,7 +821,7 @@ const GROUPS=[
     {type:'explain',text:'Drag the brown ring on the lift plate to raise or lower the wing. Both shoulder pivots move onto a lift plate that hinges on the backplate near the spine. Rotating it raises or lowers the whole wing, and the fold works the same at any lift angle. Drive it with a cord, a second handle or a gas spring, and add a stop on the backplate at the lowest position.'}
   ]},
   {title:'Feathers',items:[
-    {type:'explain',text:'How many feathers mount on each bone and how long they are. Counts set the number of quill holes on the templates; lengths change the wing outline and span. Fold tuck only changes how the drawing swings feathers in as the wing folds.'},
+    {type:'explain',text:'How many feathers mount on each bone and how long they are. Counts set the number of quill holes on the templates; lengths change the wing outline and span. Feathers swing in automatically as the wing folds.'},
     {key:'primaries',label:'Primaries',hint:'on the hand',min:0,max:14,step:1,u:'n'},
     {key:'secondaries',label:'Secondaries',hint:'on the ulna',min:0,max:24,step:1,u:'n'},
     {key:'tertials',label:'Tertials',hint:'on the humerus, by the elbow',min:0,max:8,step:1,u:'n'},
@@ -813,8 +834,7 @@ const GROUPS=[
     {key:'pcLen',label:'Primary covert length',min:20,max:500,step:1,u:'len',needs:'pc'},
     {type:'check',key:'mcOn',label:'Marginal coverts (on the clavicle bar)'},
     {key:'mCov',label:'Marginal coverts',hint:'count',min:0,max:14,step:1,u:'n',needs:'mc'},
-    {key:'mcLen',label:'Marginal covert length',min:20,max:400,step:1,u:'len',needs:'mc'},
-    {key:'tuck',label:'Fold tuck',hint:'how far feathers swing in',min:0,max:1,step:0.01,u:'ratio',needs:'noguides'}
+    {key:'mcLen',label:'Marginal covert length',min:20,max:400,step:1,u:'len',needs:'mc'}
   ]},
   {title:'Figure',items:[
     {type:'explain',text:'The human figure used for scale. Turn on "Both wings + figure" in the view bar to see it.'},
@@ -900,11 +920,11 @@ function syncAll(){
     if(document.activeElement!==c.rg)c.rg.value=P[k];if(document.activeElement!==c.nm)c.nm.value=dispVal(it,P[k]);}
   for(const e of EXPL)e.el.hidden=!visible(e.it)||(e.it.needs==='split'&&!splitPlate());updInfo();
   syncPose();
-  document.getElementById('units').value=P.units;document.getElementById('speed').value=P.speed;document.getElementById('preset').value=P.preset;
+  document.getElementById('units').value=P.units;document.getElementById('preset').value=P.preset;
   for(const b of document.querySelectorAll('#viewbar button[data-k]')){const k=b.dataset.k;b.setAttribute('aria-pressed',String(k==='handle'?P.handleAt!=='none':!!P[k]));}
   updUndo();
 }
-function syncPose(){const p=cur();const vals={shoulder:p.shoulder,elbow:p.elbow,wrist:p.wristFlex};
+function syncPose(){const p=cur();{const t=document.getElementById('timeline');if(t&&document.activeElement!==t)t.value=foldOf(p);}const vals={shoulder:p.shoulder,elbow:p.elbow,wrist:p.wristFlex};
   for(const k of['shoulder','elbow','wrist']){const c=CTRL[k];if(!c)continue;if(document.activeElement!==c.rg)c.rg.value=vals[k];if(document.activeElement!==c.nm)c.nm.value=(+vals[k]).toFixed(1);}}
 function poseChanged(){if(P.trace&&playing){TRACE.push(cur().T);if(TRACE.length>600)TRACE.shift();}draw();drawChart();readouts();}
 function updInfo(){for(const e of EXPL)if(e.it.id==='plateSize'&&!e.el.hidden){const [a,b]=plateSize();e.el.innerHTML=`<b>Each backplate:</b> about ${fmtL(a)} wide × ${fmtL(b)} tall`;}}
@@ -920,7 +940,11 @@ function applyPreset(name){const keep={};for(const k of['units','animMode','spee
 document.getElementById('resetBtn').onclick=resetDims;
 document.getElementById('preset').onchange=e=>applyPreset(e.target.value);
 document.getElementById('units').onchange=e=>{P.units=e.target.value;buildPanel();syncAll();draw();readouts();persist();};
-document.getElementById('speed').oninput=e=>{P.speed=+e.target.value;persist();};
+// Timeline scrubber: 0 = fully open, 1 = fully folded. Dragging it pauses playback.
+const tl=document.getElementById('timeline');
+tl.oninput=()=>{if(playing){playing=false;playBtn.textContent='Play';}const r=FR(),f=+tl.value;
+  if(tied())P.elbow=lerp(r.a,r.b,f);else P.shoulder=lerp(r.a,r.b,f);poseChanged();syncPose();};
+tl.onchange=()=>persist();
 for(const b of document.querySelectorAll('#viewbar button[data-k]'))b.onclick=()=>{const k=b.dataset.k;
   if(k==='handle'){P.handleAt=P.handleAt==='none'?P.handleWhere:'none';VW.user=false;}else P[k]=!P[k];
   if(k==='trace')TRACE=[];if(k==='bothWings')VW.user=false;paramChanged(k==='handle'||k==='bothWings');syncAll();};
