@@ -36,7 +36,6 @@ A 2D, browser-based simulator for articulated bird-style costume wings. Adjust t
    - **Overall size**
    - **Bone dimensions**
    - **Kinematics** (pin positions, wrist pin, radius–ulna spacing)
-   - **Fold range**
    - **Handle**
    - **Mounts** (backplate and lift hinge)
    - **Feathers**
@@ -66,7 +65,7 @@ Cut two of every part, and flip one set for the left wing.
 
 ## Build notes
 
-- Put hard stops at the fold-range limits you set. The linkage gets less efficient near full open and full fold.
+- Put hard stops at the fully open and fully folded positions. The linkage gets less efficient near both ends.
 - For pivots, use shoulder bolts or bolt-and-sleeve joints that match the pivot hole size.
 - Each feather pivots on its quill hole, so it swings naturally as the wing folds.
 

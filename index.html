@@ -234,7 +234,7 @@ function updUndo(){const b=document.getElementById('undoBtn');if(b){b.disabled=!
 function undo(){if(histT)flushHist();if(!HIST.length){toast('Nothing to undo');return;}const s=HIST.pop(),sh=P.shoulder,el=P.elbow,sp=P.speed;
   P=Object.assign({},DEF,JSON.parse(s),{shoulder:sh,elbow:el,speed:sp});lastSnap=s;lastBW=P.barWidth;TRACE=[];buildPanel();paramChanged(false);syncAll();lastSnap=snap();updUndo();toast('Undid last change');}
 const tied=()=>P.mode==='tied';
-P.tuck=DEF.tuck;P.speed=DEF.speed;P.layout='back';P.handType='single';P.clavLen=P.clavLen||0;P.animMode='fold';P.mode='pivot';P.refElbow=90;P.guides=false;P.elbowPlate=false;P.wristFixed=false;P.guideMode='tabs';
+P.tuck=DEF.tuck;P.pivOpen=DEF.pivOpen;P.pivFold=DEF.pivFold;P.elbowMin=DEF.elbowMin;P.elbowMax=DEF.elbowMax;P.speed=DEF.speed;P.layout='back';P.handType='single';P.clavLen=P.clavLen||0;P.animMode='fold';P.mode='pivot';P.refElbow=90;P.guides=false;P.elbowPlate=false;P.wristFixed=false;P.guideMode='tabs';
 const mountName=()=>'backplate';
 
 /* ---------- units ---------- */
@@ -791,13 +791,6 @@ const GROUPS=[
     {key:'ruSpace',needs2:'radius',label:'Radius–ulna spacing',hint:'radius pin off the ulna, build pose',min:5,max:150,step:0.5,u:'len'},
     {type:'explain',text:'Moves the radius toward or away from the ulna by sliding both radius pins together. The fold motion stays almost the same. Closer spacing makes a slimmer forearm but puts more load on the pins and makes any play in the joints more noticeable; below about one bar width the radius and ulna bars rub.'}
   ]},
-  {title:'Fold range',items:[
-    {type:'explain',text:'Where the shoulder stops when fully open and fully folded. Play and dragging stay inside these limits; on the real wing, put hard stops here.'},
-    {key:'elbowMin',label:'Elbow open stop',min:-10,max:120,step:0.5,u:'deg',only:'tied'},
-    {key:'elbowMax',label:'Elbow fold stop',min:20,max:180,step:0.5,u:'deg',only:'tied'},
-    {key:'pivOpen',label:'Shoulder open stop',min:-60,max:90,step:0.5,u:'deg',only:'pivot'},
-    {key:'pivFold',label:'Shoulder fold stop',min:-150,max:30,step:0.5,u:'deg',only:'pivot'}
-  ]},
   {title:'Handle',open:true,items:[
     {type:'explain',text:'The handle is a bar that pivots freely on a joint bolt; pulling or pushing the grip folds the wing. At the elbow it needs a shorter throw; at the end of the ulna (wrist) it gets more leverage but the grip travels further. Turn the handle on or off in the view bar.'},
     {type:'seg',key:'handleWhere',opts:[['elbow','At the elbow'],['wrist','End of ulna (wrist)']]},
@@ -863,10 +856,10 @@ const panel=document.getElementById('panel');const CTRL={};const EXPL=[];
 function dispVal(it,v){if(it.u==='len')return +toU(v).toFixed(P.units==='in'?3:2);return +(+v).toFixed(2);}
 function buildPanel(){
   panel.innerHTML='';for(const k in CTRL)delete CTRL[k];EXPL.length=0;
-  let openState={};try{openState=JSON.parse(localStorage.getItem('wingsim-open5')||'{}')}catch(e){}
+  let openState={};try{openState=JSON.parse(localStorage.getItem('wingsim-open6')||'{}')}catch(e){}
   GROUPS.forEach((g,gi)=>{
     const d=document.createElement('details');d.open=openState[gi]??!!g.open;
-    d.addEventListener('toggle',()=>{openState[gi]=d.open;try{localStorage.setItem('wingsim-open5',JSON.stringify(openState))}catch(e){}});
+    d.addEventListener('toggle',()=>{openState[gi]=d.open;try{localStorage.setItem('wingsim-open6',JSON.stringify(openState))}catch(e){}});
     d.innerHTML=`<summary>${g.title}</summary>`;const box=document.createElement('div');box.className='grp';d.appendChild(box);
     for(const it of g.items){
       if(it.type==='seg'){const s=document.createElement('div');s.className='seg';s.setAttribute('role','group');
