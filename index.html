@@ -101,6 +101,8 @@ input[type=range]{width:100%;accent-color:var(--link)}
 .tlwrap{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
 .tlwrap input{width:180px}
 @media (max-width:860px){.tlwrap input{width:130px}}
+.foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 16px;padding:8px 16px;border-top:1px solid var(--line);background:var(--panel)}
+.footnote{font-size:12px;color:var(--muted)}
 .extlinks{display:flex;gap:8px;align-items:center}
 .extlinks a.kofi{font:inherit;font-weight:500;font-size:13.5px;text-decoration:none;color:#fff;background:#ff5e5b;border:1px solid #ff5e5b;border-radius:6px;padding:5px 10px}
 .extlinks a.kofi:hover{filter:brightness(1.07)}
@@ -129,10 +131,6 @@ button:disabled{opacity:.45;cursor:default}
 <div class="app">
   <header class="bar">
     <div class="brand"><span class="logo">Cosplay Wing Simulator</span><span class="sub">Design, simulate, and build costume wings with 4-bar linkages</span></div>
-    <div class="extlinks">
-      <button id="contactBtn" type="button">✉ Contact me</button>
-      <a class="kofi" href="https://ko-fi.com/ladycartoonist" target="_blank" rel="noopener">☕ Buy me a coffee</a>
-    </div>
     <div class="bar-controls">
       <select id="preset" aria-label="Wing preset">
         <optgroup label="Birds">
@@ -192,6 +190,13 @@ button:disabled{opacity:.45;cursor:default}
     </div>
     <aside class="panel" id="panel"></aside>
   </div>
+  <footer class="foot">
+    <span class="footnote">Cosplay Wing Simulator · creaturebones.com</span>
+    <div class="extlinks">
+      <button id="contactBtn" type="button">✉ Contact me</button>
+      <a class="kofi" href="https://ko-fi.com/ladycartoonist" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+    </div>
+  </footer>
 </div>
 <input type="file" id="loadFile" accept=".json,application/json" hidden>
 <div class="toast" id="toast" role="status"></div>
@@ -233,7 +238,7 @@ const DEF={
   handleAt:'elbow', handleWhere:'elbow', handleLen:450, handleAng:-100, handleDir:-95, layout:'back', handType:'single', elbowPlate:false, sharedPlate:true, plateIn:60, plateUp:28, plateDown:28, plateEdge:13.3, pivotSpread:260, wristFixed:false, wristFix:25, guideMode:'tabs', gB:40, guidePrim:true,
   showFeathers:true, primaries:10, secondaries:13, pIn:300, pOut:430, sLen:260, tuck:0.8, tertials:4, tLen:200, tSpan:0.37, pCov:7, pcLen:150, mCov:7, mcLen:95, pcOn:false, mcOn:false, liftOn:true, liftAng:30, liftHx:-30, liftHy:40,
   guides:false, gS:114.5, aS:15, bS:18, gP:60.5, aP:76, bP:224,
-  ghosts:false, trace:false, labels:true, pinLabels:false, arcs:true, gripPath:false, showHoles:true, bothWings:true, plateRaise:0, figH:1727, figShoulder:410,
+  ghosts:false, trace:false, labels:false, pinLabels:false, arcs:true, gripPath:false, showHoles:true, bothWings:true, plateRaise:0, figH:1727, figShoulder:410,
   barWidth:19.05, wCor:19.05, wClav:19.05, wUlna:19.05, wRad:19.05, wHand:19.05, wHandle:19.05, baseFlare:false, baseW:38, baseLen:60, holeDia:6.4, fHoles:true, fHoleDia:3.2, spineOn:true, spineW:10, spineTip:0.45, spineLen:0.85, spineHole:2.5, spineGap:60,
   units:'in', animMode:'fold', speed:0.6, preset:'raptor', clavLen:0, ruSpace:0
 };
@@ -250,12 +255,12 @@ const PRESETS={
   angel:{humerus:400,forearm:460,hand:320,primaries:11,secondaries:20,pIn:400,pOut:680,sLen:400,tLen:320,hSet:176.7,kAlong:-178.0,cAlong:-108.7,cAcross:80.0,hSpace:97.3,tertials:5},
   fairy:{humerus:170,forearm:200,hand:180,primaries:9,secondaries:9,pIn:170,pOut:250,sLen:140,tLen:110,hSet:75.1,kAlong:-75.6,cAlong:-46.2,cAcross:34.0,hSpace:41.4}
 };
-const STORE='wingsim-v9';
+const STORE='wingsim-v10';
 let P=Object.assign({},DEF);
 // Older saved settings are upgraded once to newer defaults.
-try{let s=localStorage.getItem(STORE),old=0;if(!s)for(const v of[8,7,6]){s=localStorage.getItem('wingsim-v'+v);if(s){old=v;break;}}
+try{let s=localStorage.getItem(STORE),old=0;if(!s)for(const v of[9,8,7,6]){s=localStorage.getItem('wingsim-v'+v);if(s){old=v;break;}}
   if(s){const o=JSON.parse(s);for(const k in DEF)if(k in o)P[k]=o[k];
-    if(old===6){P.sharedPlate=true;P.liftOn=true;P.liftAng=30;}if(old&&old<=7)P.bothWings=true;if(old&&old<=8)P.pinLabels=false;}}catch(e){}
+    if(old===6){P.sharedPlate=true;P.liftOn=true;P.liftAng=30;}if(old&&old<=7)P.bothWings=true;if(old&&old<=8)P.pinLabels=false;if(old&&old<=9){P.labels=false;P.pinLabels=false;}}}catch(e){}
 if(P.handleAt==='angled')P.handleAt='elbow';if(P.handleWhere!=='wrist')P.handleWhere='elbow';if(P.handleAt!=='none')P.handleAt=P.handleWhere;P.kSpace=0;
 const persist=()=>{try{localStorage.setItem(STORE,JSON.stringify(P))}catch(e){}noteChange();};
 // Undo: every settled change (a slider drag counts as one) pushes the previous settings onto a stack.
@@ -675,7 +680,11 @@ function draw(){
   if(P.labels)drawLabels(p,S);
   if(P.pinLabels)drawPinLabels(p);
   {const used=[...new Set(S.map(x=>x.col))],names={mount:mountName(),lift:'lift plate',coracoid:tied()?'humerus rear':'coracoid bar',clavicle:tied()?'humerus front':'clavicle bar',ulna:'ulna',radius:'radius',hand:'hand',plate:'plates',handle:'handle',guide:'feather guide'};
-    ctx.font=`11px ${TH.body}`;let y=56;const kx=W_-118;for(const k of used){ctx.fillStyle=PC[k];ctx.fillRect(kx,y-9,12,10);ctx.strokeStyle="rgba(0,0,0,.5)";ctx.lineWidth=1;ctx.strokeRect(kx,y-9,12,10);ctx.fillStyle=TH.muted;ctx.textAlign="left";ctx.fillText(names[k],kx+18,y);y+=15;}}
+    ctx.font=`11px ${TH.body}`;ctx.textAlign="left";const sw=(x,y,k)=>{ctx.fillStyle=PC[k];ctx.fillRect(x,y-9,12,10);ctx.strokeStyle="rgba(0,0,0,.5)";ctx.lineWidth=1;ctx.strokeRect(x,y-9,12,10);ctx.fillStyle=TH.muted;ctx.fillText(names[k],x+18,y);};
+    if(W_<600){// narrow screens: legend wraps along the bottom of the drawing, left of the Fit view button
+      const maxX=W_-90,rows=[[]];let x=12;for(const k of used){const w=18+ctx.measureText(names[k]).width+12;if(x+w>maxX&&rows[rows.length-1].length){rows.push([]);x=12;}rows[rows.length-1].push([x,k]);x+=w;}
+      let y=H_-14-(rows.length-1)*15;for(const r of rows){for(const [x,k] of r)sw(x,y,k);y+=15;}}
+    else{let y=56;const kx=W_-118;for(const k of used){sw(kx,y,k);y+=15;}}}
   const t=toS(p.T);ctx.fillStyle=TH.trace;ctx.beginPath();ctx.arc(t.x,t.y,3.5,0,Math.PI*2);ctx.fill();
   HANDLES=[{id:'elbow',p:p.E},{id:'wrist',p:p.W}];if(p.Gp)HANDLES.push({id:'grip',p:p.Gp});if(P.liftOn&&!tied())HANDLES.push({id:'lift',p:p.C1});
   for(const h of HANDLES){const s=toS(h.p);ctx.strokeStyle=h.id==='grip'?TH.trace:(h.id==='lift'||h.id==='hinge')?PC.lift:TH.link;ctx.lineWidth=dragging===h.id?2.8:1.6;ctx.beginPath();ctx.arc(s.x,s.y,h.id==='grip'?9:11,0,Math.PI*2);ctx.stroke();
