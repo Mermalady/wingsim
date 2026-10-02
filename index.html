@@ -101,6 +101,21 @@ input[type=range]{width:100%;accent-color:var(--link)}
 .tlwrap{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--muted)}
 .tlwrap input{width:180px}
 @media (max-width:860px){.tlwrap input{width:130px}}
+.extlinks{display:flex;gap:8px;align-items:center}
+.extlinks a.kofi{font:inherit;font-weight:500;font-size:13.5px;text-decoration:none;color:#fff;background:#ff5e5b;border:1px solid #ff5e5b;border-radius:6px;padding:5px 10px}
+.extlinks a.kofi:hover{filter:brightness(1.07)}
+.extlinks a.kofi:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+dialog#contactDlg{border:1px solid var(--line);border-radius:10px;padding:0;width:min(440px,calc(100vw - 32px));background:var(--panel);color:var(--ink)}
+dialog#contactDlg::backdrop{background:rgba(10,16,20,.45)}
+#contactForm{display:flex;flex-direction:column;gap:10px;padding:18px 20px}
+#contactForm h2{margin:0;font-family:var(--font-display);font-weight:600;font-size:19px}
+#contactForm .dlgsub{margin:0;font-size:12.5px;color:var(--muted);line-height:1.45}
+#contactForm label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+#contactForm input,#contactForm textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:7px 9px;resize:vertical}
+#contactForm .hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.dlgstatus{margin:0;font-size:12.5px;min-height:1em}
+.dlgstatus.ok{color:var(--good)}.dlgstatus.err{color:var(--bad)}
+.dlgbtns{display:flex;justify-content:flex-end;gap:8px}
 .viewbar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:7px 12px;border-bottom:1px solid var(--line);background:var(--panel)}
 .viewbar .vlabel{font-family:var(--font-display);font-size:12px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-right:4px}
 .viewbar button{font-size:12px;padding:3px 10px;border-radius:99px;background:transparent;color:var(--muted)}
@@ -114,6 +129,10 @@ button:disabled{opacity:.45;cursor:default}
 <div class="app">
   <header class="bar">
     <div class="brand"><span class="logo">Cosplay Wing Simulator</span><span class="sub">Design, simulate, and build costume wings with 4-bar linkages</span></div>
+    <div class="extlinks">
+      <button id="contactBtn" type="button">✉ Contact me</button>
+      <a class="kofi" href="https://ko-fi.com/ladycartoonist" target="_blank" rel="noopener">☕ Buy me a coffee</a>
+    </div>
     <div class="bar-controls">
       <select id="preset" aria-label="Wing preset">
         <optgroup label="Birds">
@@ -176,6 +195,18 @@ button:disabled{opacity:.45;cursor:default}
 </div>
 <input type="file" id="loadFile" accept=".json,application/json" hidden>
 <div class="toast" id="toast" role="status"></div>
+<dialog id="contactDlg" aria-labelledby="contactTitle">
+  <form id="contactForm" method="dialog">
+    <h2 id="contactTitle">Contact me</h2>
+    <p class="dlgsub">Questions, build photos, bug reports or ideas: send a message and I'll reply by email.</p>
+    <label>Your name<input name="name" required autocomplete="name"></label>
+    <label>Your email<input name="email" type="email" required autocomplete="email"></label>
+    <label>Message<textarea name="message" rows="6" required></textarea></label>
+    <input type="checkbox" name="botcheck" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <p class="dlgstatus" id="contactStatus" role="status"></p>
+    <div class="dlgbtns"><button type="button" id="contactCancel">Cancel</button><button type="submit" class="primary" id="contactSend">Send</button></div>
+  </form>
+</dialog>
 
 <script>
 (()=>{
@@ -956,6 +987,20 @@ for(const b of document.querySelectorAll('#viewbar button[data-k]'))b.onclick=()
   if(k==='handle'){P.handleAt=P.handleAt==='none'?P.handleWhere:'none';VW.user=false;}else P[k]=!P[k];
   if(k==='trace')TRACE=[];if(k==='bothWings')VW.user=false;paramChanged(k==='handle'||k==='bothWings');syncAll();};
 document.getElementById('undoBtn').onclick=undo;
+/* ---------- contact form (Web3Forms relays the message, so the owner's email never appears in the page) ---------- */
+const WEB3FORMS_KEY='';  // access key from web3forms.com; safe to publish
+{const dlg=document.getElementById('contactDlg'),form=document.getElementById('contactForm'),st=document.getElementById('contactStatus'),send=document.getElementById('contactSend');
+  document.getElementById('contactBtn').onclick=()=>{st.textContent='';st.className='dlgstatus';send.disabled=false;if(dlg.showModal)dlg.showModal();else dlg.setAttribute('open','');};
+  document.getElementById('contactCancel').onclick=()=>dlg.close();
+  form.addEventListener('submit',async e=>{e.preventDefault();
+    if(!WEB3FORMS_KEY){st.className='dlgstatus err';st.textContent='The contact form is not set up yet. Please try again later.';return;}
+    const fd=new FormData(form);if(fd.get('botcheck'))return;
+    const body={access_key:WEB3FORMS_KEY,subject:'Cosplay Wing Simulator: message from '+fd.get('name'),from_name:'Cosplay Wing Simulator',name:fd.get('name'),email:fd.get('email'),message:fd.get('message')};
+    send.disabled=true;st.className='dlgstatus';st.textContent='Sending…';
+    try{const r=await fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));
+      if(r.ok&&j.success!==false){st.className='dlgstatus ok';st.textContent='Thanks! Your message was sent.';form.reset();setTimeout(()=>{if(dlg.open)dlg.close();},1800);}
+      else throw new Error(j.message||('HTTP '+r.status));}
+    catch(err){st.className='dlgstatus err';st.textContent='Sorry, that didn’t send ('+err.message+'). Please try again in a moment.';send.disabled=false;}});}
 document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&!e.shiftKey&&(e.key==='z'||e.key==='Z')){const a=document.activeElement;if(a&&a.tagName==='INPUT'&&a.type==='number')return;e.preventDefault();undo();}});
 let playing=false,animT=0,animBase=0,lastTs=0;const playBtn=document.getElementById('play');
 const animSpan=()=>P.animMode==='flap'?[0,0.5]:P.animMode==='tuck'?[0.5,1]:[0,1];
