@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>[hidden]{display:none!important}body{margin:0}</style>
-<title>Cosplay Wing Simulator</title>
+<title>Costume Wing Builder</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -130,7 +130,7 @@ button:disabled{opacity:.45;cursor:default}
 <body>
 <div class="app">
   <header class="bar">
-    <div class="brand"><span class="logo">Cosplay Wing Simulator</span><span class="sub">Design, simulate, and build costume wings with 4-bar linkages</span></div>
+    <div class="brand"><span class="logo">Costume Wing Builder</span><span class="sub">Design, simulate, and build costume wings with 4-bar linkages</span></div>
     <div class="bar-controls">
       <select id="preset" aria-label="Wing preset">
         <optgroup label="Birds">
@@ -191,7 +191,7 @@ button:disabled{opacity:.45;cursor:default}
     <aside class="panel" id="panel"></aside>
   </div>
   <footer class="foot">
-    <span class="footnote">Cosplay Wing Simulator · creaturebones.com</span>
+    <span class="footnote">Costume Wing Builder · creaturebones.com</span>
     <div class="extlinks">
       <button id="contactBtn" type="button">✉ Contact me</button>
       <a class="kofi" href="https://ko-fi.com/ladycartoonist" target="_blank" rel="noopener">☕ Buy me a coffee</a>
@@ -943,10 +943,10 @@ function buildPanel(){
     }
     panel.appendChild(d);
   });
-  document.getElementById('expTpl').onclick=()=>saveFile(`cosplay-wing-templates-${stamp()}.svg`,templateSVG());
-  document.getElementById('expFea').onclick=()=>{const svg=featherTemplateSVG();if(!svg){toast('No feathers to export: set some feather counts first.');return;}saveFile(`cosplay-wing-feathers-${stamp()}.svg`,svg);};
-  document.getElementById('expAsm').onclick=()=>saveFile(`cosplay-wing-assembly-${stamp()}.svg`,assemblySVG());
-  document.getElementById('expJson').onclick=()=>saveFile(`cosplay-wing-params-${stamp()}.json`,JSON.stringify(exportParams(),null,2));
+  document.getElementById('expTpl').onclick=()=>saveFile(`costume-wing-templates-${stamp()}.svg`,templateSVG());
+  document.getElementById('expFea').onclick=()=>{const svg=featherTemplateSVG();if(!svg){toast('No feathers to export: set some feather counts first.');return;}saveFile(`costume-wing-feathers-${stamp()}.svg`,svg);};
+  document.getElementById('expAsm').onclick=()=>saveFile(`costume-wing-assembly-${stamp()}.svg`,assemblySVG());
+  document.getElementById('expJson').onclick=()=>saveFile(`costume-wing-params-${stamp()}.json`,JSON.stringify(exportParams(),null,2));
   document.getElementById('impJson').onclick=()=>document.getElementById('loadFile').click();
   document.getElementById('reset').onclick=()=>applyPreset(P.preset);
 }
@@ -1004,7 +1004,7 @@ const WEB3FORMS_KEY='45636de6-f0b6-4a8c-b5c7-e4e054505525';  // access key from 
   form.addEventListener('submit',async e=>{e.preventDefault();
     if(!WEB3FORMS_KEY){st.className='dlgstatus err';st.textContent='The contact form is not set up yet. Please try again later.';return;}
     const fd=new FormData(form);if(fd.get('botcheck'))return;
-    const body={access_key:WEB3FORMS_KEY,subject:'Cosplay Wing Simulator: message from '+fd.get('name'),from_name:'Cosplay Wing Simulator',name:fd.get('name'),email:fd.get('email'),message:fd.get('message')};
+    const body={access_key:WEB3FORMS_KEY,subject:'Costume Wing Builder: message from '+fd.get('name'),from_name:'Costume Wing Builder',name:fd.get('name'),email:fd.get('email'),message:fd.get('message')};
     send.disabled=true;st.className='dlgstatus';st.textContent='Sending…';
     try{const r=await fetch('https://api.web3forms.com/submit',{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(body)});const j=await r.json().catch(()=>({}));
       if(r.ok&&j.success!==false){st.className='dlgstatus ok';st.textContent='Thanks! Your message was sent.';form.reset();setTimeout(()=>{if(dlg.open)dlg.close();},1800);}
@@ -1030,7 +1030,7 @@ function exportParams(){const o={app:'WingSim',version:2};for(const k in DEF)o[k
   o.derived={radiusLength_mm:+G.Lr.toFixed(2),clavicleBarLength_mm:tied()?null:+G.Lfb.toFixed(2),validRange_deg:[G.valid.lo,G.valid.hi],units_note:'all lengths in mm'};return o;}
 document.getElementById('loadFile').onchange=async e=>{const f=e.target.files[0];if(!f)return;
   try{const o=JSON.parse(await f.text());if(o.app!=='WingSim')throw 0;for(const k in DEF)if(k in o)P[k]=o[k];VW.user=false;buildPanel();paramChanged(true);syncAll();toast('Loaded '+f.name);}
-  catch(err){toast('That file is not a Cosplay Wing Simulator parameter file.');}e.target.value='';};
+  catch(err){toast('That file is not a Costume Wing Builder parameter file.');}e.target.value='';};
 const dlP=(window.claude&&window.claude.use)?window.claude.use('downloads').catch(()=>null):Promise.resolve(null);
 async function saveFile(name,data){const dl=await dlP;
   if(dl){try{await dl.save({filename:name,data});toast('Saved '+name);}catch(e){toast(e&&e.code==='declined'?'Save cancelled':'Could not save: '+(e&&e.message||'unknown error'));}return;}
@@ -1129,7 +1129,7 @@ function templateSVG(){
   out.push(`<g id="scale-check"><rect x="${M}" y="${sy}" width="100" height="6" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M}" y="${sy+11}" ${F} font-size="3.4">10 cm: measure to confirm scale</text>`+
     `<rect x="${M+115}" y="${sy}" width="25.4" height="25.4" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M+115}" y="${sy+30}" ${F} font-size="3.4">1 in square</text></g>`);
   const Wd=Math.max(maxW+M*2,190),Hd=sy+36;
-  const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Cosplay Wing Simulator part templates · ${tied()?'tied':'pivoting'} humerus</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · blue dashed = centreline · black = engrave. Pivot Ø ${fmtL(P.holeDia,dp)} · overall bar width ${fmtL(P.barWidth,dp)} (see each part) · ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Quantities cover a pair of wings. Hardware: one bolt size for every pivot; shoulder bolts or Chicago screws with nylon washers; bolt rigid joints (two bolts) tight, pivots snug.</text>`;
+  const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Costume Wing Builder part templates · ${tied()?'tied':'pivoting'} humerus</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · blue dashed = centreline · black = engrave. Pivot Ø ${fmtL(P.holeDia,dp)} · overall bar width ${fmtL(P.barWidth,dp)} (see each part) · ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Quantities cover a pair of wings. Hardware: one bolt size for every pivot; shoulder bolts or Chicago screws with nylon washers; bolt rigid joints (two bolts) tight, pivots snug.</text>`;
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${n2(Wd)}mm" height="${n2(Hd)}mm" viewBox="0 0 ${n2(Wd)} ${n2(Hd)}">\n${head}\n${out.join('\n')}\n</svg>\n`;
 }
 // Feather cut templates: each feather laid flat at true scale (quill hole at the base, a stem around it so the
@@ -1187,7 +1187,7 @@ function featherTemplateSVG(){
   const counts=ORDER.map(k=>{const n=fs.filter(f=>f.kind===k).length;return n?`${n} ${n>1?PLUR[k]:NAMES[k].toLowerCase()}`:null;}).filter(Boolean).join(', ');
   const sy=y+2;out.push(`<g id="scale-check"><rect x="${M}" y="${sy}" width="100" height="6" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M}" y="${sy+11}" ${F} font-size="3.4">10 cm: measure to confirm scale</text><rect x="${M+115}" y="${sy}" width="25.4" height="25.4" fill="none" stroke="${ENG}" stroke-width="0.3"/><text x="${M+115}" y="${sy+30}" ${F} font-size="3.4">1 in square</text></g>`);
   const Wd=Math.max(rowW+M*2,190),Hd=sy+36;
-  const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Cosplay Wing Simulator feather templates</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · black = engrave (rachis). ${P.spineOn?`Each feather = vane (top) + spine (below). Quill hole Ø ${fmtL(P.fHoleDia,P.units==='in'?3:2)} in the spine; rivet holes Ø ${fmtL(P.spineHole,P.units==='in'?3:2)} line up between vane and spine.`:`Quill hole Ø ${fmtL(P.fHoleDia,P.units==='in'?3:2)} at the base of each feather.`} ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Per wing: ${esc(counts)}. Quantities cover a pair of wings: cut two of each and flip one for the left wing. P1 = innermost primary, S1 = secondary nearest the elbow.</text>`;
+  const head=`<text x="${M}" y="${M+2}" ${F} font-size="6" font-weight="bold">Costume Wing Builder feather templates</text><text x="${M}" y="${M+9}" ${F} font-size="3.4">Print or cut at 100%. Red = cut · black = engrave (rachis). ${P.spineOn?`Each feather = vane (top) + spine (below). Quill hole Ø ${fmtL(P.fHoleDia,P.units==='in'?3:2)} in the spine; rivet holes Ø ${fmtL(P.spineHole,P.units==='in'?3:2)} line up between vane and spine.`:`Quill hole Ø ${fmtL(P.fHoleDia,P.units==='in'?3:2)} at the base of each feather.`} ${stamp()}</text><text x="${M}" y="${M+14.5}" ${F} font-size="3.4">Per wing: ${esc(counts)}. Quantities cover a pair of wings: cut two of each and flip one for the left wing. P1 = innermost primary, S1 = secondary nearest the elbow.</text>`;
   return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${n2(Wd)}mm" height="${n2(Hd)}mm" viewBox="0 0 ${n2(Wd)} ${n2(Hd)}">\n${head}\n${out.join('\n')}\n</svg>\n`;
 }
 function assemblySVG(){
@@ -1208,7 +1208,7 @@ function assemblySVG(){
     out.push('</g>');y=y1+dy+30;
   }
   const Wd=Math.max(maxW+M*2,220),Hd=y+10;
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${n2(Wd)}mm" height="${n2(Hd)}mm" viewBox="0 0 ${n2(Wd)} ${n2(Hd)}">\n<rect width="100%" height="100%" fill="#ffffff"/>\n<text x="${M}" y="${M}" ${F} font-size="9" font-weight="bold">Cosplay Wing Simulator assembly: right wing, ${tied()?'tied':'pivoting'} humerus, 1:1</text>\n${out.join('\n')}\n</svg>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<svg xmlns="http://www.w3.org/2000/svg" width="${n2(Wd)}mm" height="${n2(Hd)}mm" viewBox="0 0 ${n2(Wd)} ${n2(Hd)}">\n<rect width="100%" height="100%" fill="#ffffff"/>\n<text x="${M}" y="${M}" ${F} font-size="9" font-weight="bold">Costume Wing Builder assembly: right wing, ${tied()?'tied':'pivoting'} humerus, 1:1</text>\n${out.join('\n')}\n</svg>\n`;
 }
 
 /* ---------- toast ---------- */
