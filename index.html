@@ -202,7 +202,7 @@ const DEF={
   handleAt:'elbow', handleWhere:'elbow', handleLen:450, handleAng:-100, handleDir:-95, layout:'back', handType:'single', elbowPlate:false, sharedPlate:true, plateIn:60, plateUp:28, plateDown:28, plateEdge:13.3, pivotSpread:260, wristFixed:false, wristFix:25, guideMode:'tabs', gB:40, guidePrim:true,
   showFeathers:true, primaries:10, secondaries:13, pIn:300, pOut:430, sLen:260, tuck:0.8, tertials:4, tLen:200, pCov:7, pcLen:150, mCov:7, mcLen:95, pcOn:false, mcOn:false, liftOn:true, liftAng:30, liftHx:-30, liftHy:40,
   guides:false, gS:114.5, aS:15, bS:18, gP:60.5, aP:76, bP:224,
-  ghosts:false, trace:false, labels:true, pinLabels:true, arcs:true, gripPath:false, showHoles:true, bothWings:false, plateRaise:0, figH:1727, figShoulder:410,
+  ghosts:false, trace:false, labels:true, pinLabels:true, arcs:true, gripPath:false, showHoles:true, bothWings:true, plateRaise:0, figH:1727, figShoulder:410,
   barWidth:19.05, wCor:19.05, wClav:19.05, wUlna:19.05, wRad:19.05, wHand:19.05, wHandle:19.05, baseFlare:false, baseW:38, baseLen:60, holeDia:6.4, fHoles:true, fHoleDia:3.2, spineOn:true, spineW:10, spineTip:0.45, spineLen:0.85, spineHole:2.5, spineGap:60,
   units:'in', animMode:'fold', speed:0.6, preset:'raptor', clavLen:0, ruSpace:0
 };
@@ -219,10 +219,10 @@ const PRESETS={
   angel:{humerus:400,forearm:460,hand:320,primaries:11,secondaries:20,pIn:400,pOut:680,sLen:400,tLen:320,hSet:176.7,kAlong:-178.0,cAlong:-108.7,cAcross:80.0,hSpace:97.3,tertials:5},
   fairy:{humerus:170,forearm:200,hand:180,primaries:9,secondaries:9,pIn:170,pOut:250,sLen:140,tLen:110,hSet:75.1,kAlong:-75.6,cAlong:-46.2,cAcross:34.0,hSpace:41.4}
 };
-const STORE='wingsim-v7';
+const STORE='wingsim-v8';
 let P=Object.assign({},DEF);
-try{let s=localStorage.getItem(STORE),old=false;if(!s){s=localStorage.getItem('wingsim-v6');old=!!s;}
-  if(s){const o=JSON.parse(s);for(const k in DEF)if(k in o)P[k]=o[k];if(old){P.sharedPlate=true;P.liftOn=true;P.liftAng=30;}}}catch(e){}
+try{let s=localStorage.getItem(STORE),old=0;if(!s){s=localStorage.getItem('wingsim-v7');if(s)old=7;else{s=localStorage.getItem('wingsim-v6');if(s)old=6;}}
+  if(s){const o=JSON.parse(s);for(const k in DEF)if(k in o)P[k]=o[k];if(old===6){P.sharedPlate=true;P.liftOn=true;P.liftAng=30;}if(old)P.bothWings=true;}}catch(e){}
 if(P.handleAt==='angled')P.handleAt='elbow';if(P.handleWhere!=='wrist')P.handleWhere='elbow';if(P.handleAt!=='none')P.handleAt=P.handleWhere;P.kSpace=0;
 const persist=()=>{try{localStorage.setItem(STORE,JSON.stringify(P))}catch(e){}noteChange();};
 // Undo: every settled change (a slider drag counts as one) pushes the previous settings onto a stack.
