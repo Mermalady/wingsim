@@ -23,7 +23,7 @@ A 2D, browser-based simulator for articulated bird-style costume wings. Adjust t
   Feather mount holes are placed automatically so they stay clear of every joint bolt and of bars that cross over.
 - **Scale check:** show both wings on an adjustable human figure (default 5′8″) to judge span and backplate height.
 - **Presets:**
-  - birds: raptor, eagle, condor/vulture, albatross/gull, swan, corvid, owl, swift and hummingbird;
+  - birds: hawk, eagle, condor/vulture, albatross/gull, swan, corvid, owl, swift and hummingbird;
   - costume styles: angel and fairy.
 
   You can also set a target open wingspan and scale everything at once.
