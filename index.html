@@ -988,7 +988,7 @@ for(const b of document.querySelectorAll('#viewbar button[data-k]'))b.onclick=()
   if(k==='trace')TRACE=[];if(k==='bothWings')VW.user=false;paramChanged(k==='handle'||k==='bothWings');syncAll();};
 document.getElementById('undoBtn').onclick=undo;
 /* ---------- contact form (Web3Forms relays the message, so the owner's email never appears in the page) ---------- */
-const WEB3FORMS_KEY='';  // access key from web3forms.com; safe to publish
+const WEB3FORMS_KEY='45636de6-f0b6-4a8c-b5c7-e4e054505525';  // access key from web3forms.com; safe to publish
 {const dlg=document.getElementById('contactDlg'),form=document.getElementById('contactForm'),st=document.getElementById('contactStatus'),send=document.getElementById('contactSend');
   document.getElementById('contactBtn').onclick=()=>{st.textContent='';st.className='dlgstatus';send.disabled=false;if(dlg.showModal)dlg.showModal();else dlg.setAttribute('open','');};
   document.getElementById('contactCancel').onclick=()=>dlg.close();
